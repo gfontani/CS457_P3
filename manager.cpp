@@ -39,7 +39,7 @@ int totalRouterNum;
  
  //GABBY
  //send the router neighbor information to each router, line by line
- void sendNeighborInformation(ifstream fileptr){
+ void sendNeighborInformation(ifstream& fileptr){
 	 //Manager reads neighbors from the file, sending info line by line to each router
 	 
 	 //Send Neighbor information (neighbor id, link cost, UDP port number)
@@ -48,7 +48,7 @@ int totalRouterNum;
  
  //BEN
 //send messages to all routers according to file
- void sendMessages(ifstream fileptr){
+ void sendMessages(ifstream& fileptr){
 	 
 	//loop
 		//reads rest of file line by line
@@ -61,11 +61,11 @@ int totalRouterNum;
 int main(int argc, char* argv[]){
 	//open file and start reading it
 	//leave the file open!!!
-	ifstream fileptr;
+	ifstream fileptr("temp");
 	
 	//read first number in file
 	int numRouters = 0;
-	makeTable(numRouters);
+	makeRouterTable(numRouters);
 	
 	//setup TCP server
 	managerTcpPort = 0;

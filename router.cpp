@@ -8,6 +8,8 @@ vector<string> linkStateAlgorithm(vector<vector<int>> neighbors, int id, int udp
 		//Routers wait for an LSP(link state packet) for every router
 
 		//COPY FROM INTERNET!!!?
+		vector<string> routingTable;
+		return routingTable;
 	
 }
 
@@ -26,7 +28,7 @@ void router(int id, int managerPort){
 	//set up tcp client connection with manager
 	
 	//sets up udp socket
-	udpSocket = 0;
+	int udpSocket = 0;
 	//send message to manager with udp port
 	
 	//receive neighbor information from tecp connection with manager
