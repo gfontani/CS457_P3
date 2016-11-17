@@ -4,7 +4,7 @@
 
 //The table will have as many rows as there are routers
 //and 3 columns: <routerNumber> | <UDP port> | <tcpinformation>
-vector<vector<int> > routerAndPorts;
+vector<vector<string> > routerAndPorts;
 int managerTcpSock;
 
 //print error message
@@ -71,10 +71,10 @@ int server_accept(int sock){
  //will save a spave for ports but not fill it in (because we don't know the ports yet)
  void makeRouterTable(){
 	 for(int i = 0; i < totalRouterNum; i++){
-		 vector<int> router;
-		 router.push_back(i);
-		 router.push_back(-1);
-		 router.push_back(-1);
+		 vector<string> router;
+		 router.push_back(to_string(i));
+		 router.push_back("udp" + to_string(i));
+		 router.push_back("tcp" + to_string(i));
 		 routerAndPorts.push_back(router);
 	 }
  }
@@ -83,7 +83,7 @@ int server_accept(int sock){
 	 printf("Router and port table: \nrouter#\tUdpPort\tTcpPort\n");
 	 for(unsigned int i = 0; i < routerAndPorts.size(); i++){
 		 for(unsigned int j = 0; j < routerAndPorts.at(i).size(); j++){
-			 printf("%d\t", routerAndPorts.at(i).at(j));
+			 printf("%s\t", routerAndPorts.at(i).at(j).c_str());
 		 }
 		 printf("\n");
 	 }
@@ -130,13 +130,48 @@ int server_accept(int sock){
 	}
  }
  
+ //returns the udp port of router
+ string getRouterUdp(int router){
+	return routerAndPorts.at(router).at(1);
+ }
+ 
+ //returns the tcp stuff of router
+ int getRouterTcp(int router){
+	return atoi(routerAndPorts.at(router).at(2).c_str());
+ }
+ 
+ 
+  //send neighbor, neighbor's udp port, and the weight to router
+ void sendInfoToRouter(string router, string neighbor, string weight){
+	string neighborUdp = getRouterUdp(atoi(neighbor.c_str()));
+	packet to_send;
+	string dataToSend = neighbor + "," + neighborUdp + "," + weight;
+	strcpy(to_send.data, dataToSend.c_str());
+	int socket = getRouterTcp(atoi(router.c_str()));
+	//send_msg(socket, &to_send);
+	printf("Manager sent to %s: %s\n", router.c_str(), to_send.data);
+ }
+ 
  //GABBY
  //send the router neighbor information to each router, line by line
  void sendNeighborInformation(ifstream& fileptr){
-	 //Manager reads neighbors from the file, sending info line by line to each router
-	 
-	 //Send Neighbor information (neighbor id, link cost, UDP port number)
-	 
+	 if(fileptr.is_open()){
+		//Reads neighbors from the file, sending info line by line to each router
+		string line = "";
+		while(getline(fileptr, line) && 0 != line.compare("-1")){
+			vector<string> routerInfo;
+			boost::split(routerInfo, line, boost::is_any_of(" "));
+			if(3 != routerInfo.size()){
+				error("the format of the input file is wrong for indicating neighbors");
+			} 			
+			//Send Neighbor information (neighbor id, link cost, UDP port number)
+			sendInfoToRouter(routerInfo.at(0), routerInfo.at(1), routerInfo.at(2));
+			sendInfoToRouter(routerInfo.at(1), routerInfo.at(0), routerInfo.at(2));
+		} 
+	 }
+	 else{
+		 error("fileptr is not open in sendNeighborInformation, exiting forecefully");
+	 }
  }
  
  //BEN
@@ -154,19 +189,22 @@ int server_accept(int sock){
 int main(int argc, char* argv[]){
 	//open file and start reading it
 	//leave the file open!!!
-	ifstream fileptr("temp");
+	ifstream fileptr("exampleFile.txt");
 	
 	//read first number in file
-	totalRouterNum = 3; //hardcoded for debugging
+	string line = "";
+	getline(fileptr, line);
+	totalRouterNum = atoi(line.c_str()); //hardcoded for debugging
+	
 	makeRouterTable();
 	printRouterTable();
 	//setup TCP server
 	int startingPort = 3360;
-	managerTcpSock = server_bind_listen(startingPort);
-	printf("manager listening on port: %d\n", managerTcpPort);
+	//managerTcpSock = server_bind_listen(startingPort);
+	//printf("manager listening on port: %d\n", managerTcpPort);
 	
 	//make all of the routers
-	createRouters();
+	//createRouters();
 	
 	//send neighbor information
 	sendNeighborInformation(fileptr);

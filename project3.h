@@ -21,6 +21,7 @@
 #include<csignal>
 #include<fstream> //include for talking to files.
 #include <vector>
+#include <boost/algorithm/string.hpp>
 
 using namespace std;
 
