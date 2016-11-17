@@ -60,7 +60,7 @@ int server_accept(int sock){
                  &clilen);
 	if (newsock < 0) error("ERROR on accept");
 
-	printf("Found a router! Waiting to receive...\n");
+	//printf("Found a router! Waiting to receive...\n");
 	return newsock;
 }
 
@@ -170,5 +170,5 @@ int main(int argc, char* argv[]){
 
 	close(managerTcpSock);
 	printf("exiting manager\n");
-	return 0;
+	exit(0);
 }
