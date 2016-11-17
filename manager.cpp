@@ -2,7 +2,9 @@
 #include <project3.h>
 #include <router.cpp>
 
-vector<vector<string> > routerAndPorts;
+//The table will have as many rows as there are routers
+//and 3 columns: <routerNumber> | <UDP port> | <tcpinformation>
+vector<vector<int> > routerAndPorts;
 int managerTcpSock;
 
 //print error message
@@ -68,7 +70,23 @@ int server_accept(int sock){
  //method to create a table with number or routers and port numbers
  //will save a spave for ports but not fill it in (because we don't know the ports yet)
  void makeRouterTable(){
-	 
+	 for(int i = 0; i < totalRouterNum; i++){
+		 vector<int> router;
+		 router.push_back(i);
+		 router.push_back(-1);
+		 router.push_back(-1);
+		 routerAndPorts.push_back(router);
+	 }
+ }
+ 
+ void printRouterTable(){
+	 printf("Router and port table: \nrouter#\tUdpPort\tTcpPort\n");
+	 for(unsigned int i = 0; i < routerAndPorts.size(); i++){
+		 for(unsigned int j = 0; j < routerAndPorts.at(i).size(); j++){
+			 printf("%d\t", routerAndPorts.at(i).at(j));
+		 }
+		 printf("\n");
+	 }
  }
  
  //CHAD
@@ -141,7 +159,7 @@ int main(int argc, char* argv[]){
 	//read first number in file
 	totalRouterNum = 3; //hardcoded for debugging
 	makeRouterTable();
-	
+	printRouterTable();
 	//setup TCP server
 	int startingPort = 3360;
 	managerTcpSock = server_bind_listen(startingPort);
