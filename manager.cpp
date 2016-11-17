@@ -2,14 +2,72 @@
 #include <project3.h>
 #include <router.cpp>
 
-vector<vector<string>> routerAndPorts;
-int managerTcpPort;
-int totalRouterNum;
+vector<vector<string> > routerAndPorts;
+int managerTcpSock;
+
+//print error message
+void error(char const * msg)
+{
+	perror(msg);
+	//kill all children and close all sockets?
+	close(managerTcpPort);
+	exit(1);
+}
+
+void send_msg(int sock, packet* to_send){
+		int n;
+		n = send(sock,reinterpret_cast<const char*>(to_send),sizeof(packet), 0);
+			if (n < 0) error("ERROR writing to socket");
+}
+
+void recv_msg(int sock, packet* recvd){
+	int n = recv(sock,reinterpret_cast<char*>(recvd),sizeof(packet), MSG_WAITALL);
+	if (n < 0) error("ERROR reading from socket");
+}
+
+//server listen, returns listening socket fd
+int server_bind_listen(int portno){
+	int sock;
+	struct sockaddr_in serv_addr;
+	sock = socket(AF_INET, SOCK_STREAM, 0);
+	if (sock < 0) error("ERROR opening socket");
+	bzero((char *) &serv_addr, sizeof(serv_addr));
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_addr.s_addr = INADDR_ANY;
+
+	//try 13 ports
+	for(int i=0; i<13; i++){
+		serv_addr.sin_port = htons(portno);
+		if (bind(sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) == 0)
+			break;
+		if(i==12)
+			error("ERROR on binding"); //could not bind to 13 consecutive ports
+		portno++;
+	}
+
+	listen(sock,5);
+	managerTcpPort = portno;
+	return sock;
+}
+
+//server setup, returns accepted socket fd
+int server_accept(int sock){
+	struct sockaddr_in cli_addr;
+	socklen_t clilen;
+	clilen = sizeof(cli_addr);
+	int newsock = accept(sock, 
+                 (struct sockaddr *) &cli_addr, 
+                 &clilen);
+	if (newsock < 0) error("ERROR on accept");
+
+	printf("Found a router! Waiting to receive...\n");
+	return newsock;
+}
 
  //GABBY
  //method to create a table with number or routers and port numbers
  //will save a spave for ports but not fill it in (because we don't know the ports yet)
- void makeRouterTable(int numRouters){
+ void makeRouterTable(){
 	 
  }
  
@@ -18,23 +76,40 @@ int totalRouterNum;
  //fork to create all of the routers
  //in each child process call the router method from router
  void createRouters(){
-	//Create all the routers by forking
-	
+	int pid=1;//begin as parent process
+	//Create all the routers by forking new processes
 	//loop
+	for(int i=0;i<totalRouterNum; i++){
 		//fork
-		
+		pid = fork();
+
 		//if parent
-			//wait for reply of each router after creation
+		if(pid==0){
+			//wait for connection and reply of each router after creation
+			int tempRouterSock = server_accept(managerTcpSock);
+			packet tempPacket;
+			recv_msg(tempRouterSock, &tempPacket);
+			printf("manager has recvd msg: %s\n", tempPacket.data);
 	
 			//receive tcp message from router containing router's udp port number
 	
 			//store router's udp port number in vector vector
-						
+
+			//for debugging only, will need to keep open eventually
+			close(tempRouterSock);
+		}
+		else if(pid>0){			
 		//if child
 			//keep track of child id's?
 			//call the router method from router passing router id
-
-	
+			router(i);
+			exit(0);
+		}
+		else{
+		//failed to fork
+			error("failed to fork, exiting forcefully?");
+		}
+	}
  }
  
  //GABBY
@@ -64,11 +139,13 @@ int main(int argc, char* argv[]){
 	ifstream fileptr("temp");
 	
 	//read first number in file
-	int numRouters = 0;
-	makeRouterTable(numRouters);
+	totalRouterNum = 3; //hardcoded for debugging
+	makeRouterTable();
 	
 	//setup TCP server
-	managerTcpPort = 0;
+	int startingPort = 3360;
+	managerTcpSock = server_bind_listen(startingPort);
+	printf("manager listening on port: %d\n", managerTcpPort);
 	
 	//make all of the routers
 	createRouters();
@@ -91,5 +168,7 @@ int main(int argc, char* argv[]){
 	//wait()
 	//exit()
 
+	close(managerTcpSock);
+	printf("exiting manager\n");
 	return 0;
 }
