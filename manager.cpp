@@ -4,7 +4,7 @@
 
 //The table will have as many rows as there are routers
 //and 3 columns: <routerNumber> | <UDP port> | <tcpinformation>
-vector<vector<string> > routerAndPorts;
+vector<vector<int> > routerAndPorts;
 int managerTcpSock;
 
 //print error message
@@ -47,7 +47,7 @@ int server_bind_listen(int portno){
 		portno++;
 	}
 
-	listen(sock,5);
+	listen(sock,11);
 	managerTcpPort = portno;
 	return sock;
 }
@@ -67,13 +67,13 @@ int server_accept(int sock){
 }
 
  //returns the udp port of router
- string getRouterUdp(int router){
-	return routerAndPorts[router][1];
+ int getRouterUdp(int router){
+	return routerAndPorts[router][0];
  }
  
  //returns the tcp stuff of router
  int getRouterTcp(int router){
-	return atoi(routerAndPorts[router][2].c_str());
+	return routerAndPorts[router][1];
  }
  
  //GABBY
@@ -81,10 +81,9 @@ int server_accept(int sock){
  //will save a spave for ports but not fill it in (because we don't know the ports yet)
  void makeRouterTable(){
 	 for(int i = 0; i < totalRouterNum; i++){
-		 vector<string> router;
-		 router.push_back(to_string(i));
-		 router.push_back("udp" + to_string(i));
-		 router.push_back("tcp" + to_string(i));
+		 vector<int> router;
+		 router.push_back(-1);
+		 router.push_back(-1);
 		 routerAndPorts.push_back(router);
 	 }
  }
@@ -92,8 +91,9 @@ int server_accept(int sock){
  void printRouterTable(){
 	 printf("Router and port table: \nrouter#\tUdpPort\tTcpPort\n");
 	 for(unsigned int i = 0; i < routerAndPorts.size(); i++){
+		 printf("%d\t", i);
 		 for(unsigned int j = 0; j < routerAndPorts[i].size(); j++){
-			 printf("%s\t", routerAndPorts[i][j].c_str());
+			 printf("%d\t", routerAndPorts[i][j]);
 		 }
 		 printf("\n");
 	 }
@@ -102,9 +102,13 @@ int server_accept(int sock){
  //get the router number from the message
  //get the udp port from the message
  //add the udp port to the table
- int getUdpFromRouterMessage(char* message, int router){
-	 return 0;
+ void addUdpFromRouterMessage(char* message, int router){
+	 string msg(message);
+	 int pos = msg.find_last_of(" \t\n");
+	 string udpPort = msg.substr(pos+1);
+	 routerAndPorts[router][0] = atoi(udpPort.c_str());
  }
+ 
  //CHAD
  //method to create all of the routers
  //fork to create all of the routers
@@ -121,12 +125,12 @@ int server_accept(int sock){
 		if(pid==0){
 			//wait for connection and reply of each router after creation
 			int tempRouterSock = server_accept(managerTcpSock);
-			routerAndPorts[i][2] = to_string(tempRouterSock);
+			routerAndPorts[i][1] = tempRouterSock;
 			packet tempPacket;
 			recv_msg(tempRouterSock, &tempPacket);
 			
 			printf("manager has recvd msg: %s\n", tempPacket.data);
-	
+			addUdpFromRouterMessage(tempPacket.data, i);
 			//receive tcp message from router containing router's udp port number
 	
 			//store router's udp port number in vector vector
@@ -150,9 +154,9 @@ int server_accept(int sock){
  
  //send neighbor, neighbor's udp port, and the weight to router
  void sendInfoToRouter(string router, string neighbor, string weight){
-	string neighborUdp = getRouterUdp(atoi(neighbor.c_str()));
+	int neighborUdp = getRouterUdp(atoi(neighbor.c_str()));
 	packet to_send;
-	sprintf(to_send.data, "%s,%s,%s", neighbor.c_str(), neighborUdp.c_str(), weight.c_str());
+	sprintf(to_send.data, "%s,%d,%s", neighbor.c_str(), neighborUdp, weight.c_str());
 	int socket = getRouterTcp(atoi(router.c_str()));
 	send_msg(socket, &to_send);
 	printf("Manager sent to %s: %s\n", router.c_str(), to_send.data);
@@ -193,7 +197,7 @@ int server_accept(int sock){
 
 void closeAllSockets(){
 	for(int i = 0; i < totalRouterNum; i++){
-		int tempRouterSock = atoi(routerAndPorts[i][2].c_str());
+		int tempRouterSock = routerAndPorts[i][1];
 		close(tempRouterSock);
 	}
 	
