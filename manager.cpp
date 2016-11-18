@@ -66,6 +66,16 @@ int server_accept(int sock){
 	return newsock;
 }
 
+ //returns the udp port of router
+ string getRouterUdp(int router){
+	return routerAndPorts[router][1];
+ }
+ 
+ //returns the tcp stuff of router
+ int getRouterTcp(int router){
+	return atoi(routerAndPorts[router][2].c_str());
+ }
+ 
  //GABBY
  //method to create a table with number or routers and port numbers
  //will save a spave for ports but not fill it in (because we don't know the ports yet)
@@ -82,13 +92,19 @@ int server_accept(int sock){
  void printRouterTable(){
 	 printf("Router and port table: \nrouter#\tUdpPort\tTcpPort\n");
 	 for(unsigned int i = 0; i < routerAndPorts.size(); i++){
-		 for(unsigned int j = 0; j < routerAndPorts.at(i).size(); j++){
-			 printf("%s\t", routerAndPorts.at(i).at(j).c_str());
+		 for(unsigned int j = 0; j < routerAndPorts[i].size(); j++){
+			 printf("%s\t", routerAndPorts[i][j].c_str());
 		 }
 		 printf("\n");
 	 }
  }
  
+ //get the router number from the message
+ //get the udp port from the message
+ //add the udp port to the table
+ int getUdpFromRouterMessage(char* message, int router){
+	 return 0;
+ }
  //CHAD
  //method to create all of the routers
  //fork to create all of the routers
@@ -105,8 +121,10 @@ int server_accept(int sock){
 		if(pid==0){
 			//wait for connection and reply of each router after creation
 			int tempRouterSock = server_accept(managerTcpSock);
+			routerAndPorts[i][2] = to_string(tempRouterSock);
 			packet tempPacket;
 			recv_msg(tempRouterSock, &tempPacket);
+			
 			printf("manager has recvd msg: %s\n", tempPacket.data);
 	
 			//receive tcp message from router containing router's udp port number
@@ -114,7 +132,7 @@ int server_accept(int sock){
 			//store router's udp port number in vector vector
 
 			//for debugging only, will need to keep open eventually
-			close(tempRouterSock);
+			//close(tempRouterSock);
 		}
 		else if(pid>0){			
 		//if child
@@ -130,25 +148,13 @@ int server_accept(int sock){
 	}
  }
  
- //returns the udp port of router
- string getRouterUdp(int router){
-	return routerAndPorts.at(router).at(1);
- }
- 
- //returns the tcp stuff of router
- int getRouterTcp(int router){
-	return atoi(routerAndPorts.at(router).at(2).c_str());
- }
- 
- 
-  //send neighbor, neighbor's udp port, and the weight to router
+ //send neighbor, neighbor's udp port, and the weight to router
  void sendInfoToRouter(string router, string neighbor, string weight){
 	string neighborUdp = getRouterUdp(atoi(neighbor.c_str()));
 	packet to_send;
-	string dataToSend = neighbor + "," + neighborUdp + "," + weight;
-	strcpy(to_send.data, dataToSend.c_str());
+	sprintf(to_send.data, "%s,%s,%s", neighbor.c_str(), neighborUdp.c_str(), weight.c_str());
 	int socket = getRouterTcp(atoi(router.c_str()));
-	//send_msg(socket, &to_send);
+	send_msg(socket, &to_send);
 	printf("Manager sent to %s: %s\n", router.c_str(), to_send.data);
  }
  
@@ -165,8 +171,8 @@ int server_accept(int sock){
 				error("the format of the input file is wrong for indicating neighbors");
 			} 			
 			//Send Neighbor information (neighbor id, link cost, UDP port number)
-			sendInfoToRouter(routerInfo.at(0), routerInfo.at(1), routerInfo.at(2));
-			sendInfoToRouter(routerInfo.at(1), routerInfo.at(0), routerInfo.at(2));
+			sendInfoToRouter(routerInfo[0], routerInfo[1], routerInfo[2]);
+			sendInfoToRouter(routerInfo[1], routerInfo[0], routerInfo[2]);
 		} 
 	 }
 	 else{
@@ -185,6 +191,13 @@ int server_accept(int sock){
 	 
  }
 
+void closeAllSockets(){
+	for(int i = 0; i < totalRouterNum; i++){
+		int tempRouterSock = atoi(routerAndPorts[i][2].c_str());
+		close(tempRouterSock);
+	}
+	
+}
  
 int main(int argc, char* argv[]){
 	//open file and start reading it
@@ -197,15 +210,15 @@ int main(int argc, char* argv[]){
 	totalRouterNum = atoi(line.c_str()); //hardcoded for debugging
 	
 	makeRouterTable();
-	printRouterTable();
+	//printRouterTable();
 	//setup TCP server
 	int startingPort = 3360;
-	//managerTcpSock = server_bind_listen(startingPort);
-	//printf("manager listening on port: %d\n", managerTcpPort);
+	managerTcpSock = server_bind_listen(startingPort);
+	printf("manager listening on port: %d\n", managerTcpPort);
 	
 	//make all of the routers
-	//createRouters();
-	
+	createRouters();
+	printRouterTable();
 	//send neighbor information
 	sendNeighborInformation(fileptr);
 	
@@ -225,6 +238,7 @@ int main(int argc, char* argv[]){
 	//exit()
 
 	close(managerTcpSock);
+	closeAllSockets();
 	printf("exiting manager\n");
 	exit(0);
 }

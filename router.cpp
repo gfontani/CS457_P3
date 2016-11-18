@@ -81,7 +81,9 @@ void router(int id){
 	vector<vector<int> > neighbors;
 	
 	//receive neighbor information from tecp connection with manager
-	
+	packet to_recv;
+	recv_msg(tcpSocket, &to_recv);
+	printf("router #%d received %s\n", id, to_recv.data);
 	//wait for go ahead from manager
 	
 	//Routers do link state algorithm to make the routing tables
