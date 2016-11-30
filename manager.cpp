@@ -78,7 +78,7 @@ int server_accept(int sock){
  
  //GABBY
  //method to create a table with number or routers and port numbers
- //will save a spave for ports but not fill it in (because we don't know the ports yet)
+ //will save a space for ports but not fill it in (because we don't know the ports yet)
  void makeRouterTable(){
 	 for(int i = 0; i < totalRouterNum; i++){
 		 vector<int> router;
