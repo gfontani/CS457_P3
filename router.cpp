@@ -27,20 +27,31 @@ int client_connect(const char* addr, int portno){
 
 	//printf("Connected to manager!\n");
 	return sock;
-}
+} 
 
 //link state algorithm/djikstras
 //returns the routing table built from the link state algorithm
-vector<string> linkStateAlgorithm(vector<vector<int> > neighbors, int id, int udpSocket){
+vector<string> linkStateAlgorithm(vector<vector<int>> neighbors, int id, int udpSocket){
+  
 		//Routers wait for an LSP(link state packet) for every router
 
 		//COPY FROM INTERNET!!!?
 		vector<string> routingTable;
+                string tommy = "I am a routing table";
+                routingTable.push_back(tommy);
 		return routingTable;
 	
 }
 
-void writeRoutingTableToFile(int fileptr, vector<string> routingTable){
+void writeRoutingTableToFile(string fileName, vector<string> routingTable){
+  ofstream myStream;
+  myStream.open(fileName);
+  printf("printing to file\n");
+  for(unsigned int i = 0; i<routingTable.size(); ++i){
+   cout<<"routing table i " << routingTable[i] <<"\n";
+    myStream<<routingTable[i]<<"\t";
+    myStream<<"\n";
+  }
 	//write the routing table to the .out file
 }
 
@@ -91,13 +102,18 @@ void router(int id){
 	
 	//create file name based on id
 	//should be id.out
-	string filename = "";
+        printf("id = %d\n", id);
+        string sid = to_string(id);
+	string filename = sid + ".out";
 	
 	//open write to file
-	int fileptr = 0;
-	
+	//int fileptr = 0;
+	//open ofstream
+        
 	//Routers write their routing tables to their file
-	writeRoutingTableToFile(fileptr, routingTable);
+	//writeRoutingTableToFile(fileptr, routingTable);
+        writeRoutingTableToFile(filename, routingTable);
+        
 	
 	//Routers send message to manager when done
 
