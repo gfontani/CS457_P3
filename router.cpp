@@ -37,7 +37,7 @@ vector<string> linkStateAlgorithm(vector<vector<int>> neighbors, int id, int udp
 
 		//COPY FROM INTERNET!!!?
 		vector<string> routingTable;
-                string tommy = "I am a routing table";
+                string tommy = "I am a routing table";  //for testing remove
                 routingTable.push_back(tommy);
 		return routingTable;
 	
