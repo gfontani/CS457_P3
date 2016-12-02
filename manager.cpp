@@ -178,6 +178,8 @@ int server_accept(int sock){
 			sendInfoToRouter(routerInfo[0], routerInfo[1], routerInfo[2]);
 			sendInfoToRouter(routerInfo[1], routerInfo[0], routerInfo[2]);
 		} 
+		//Manager sends a “hey go ahead and start the link state algorithm” message to all of the routers
+			//send -1 to all routers
 	 }
 	 else{
 		 error("fileptr is not open in sendNeighborInformation, exiting forecefully");
@@ -228,8 +230,6 @@ int main(int argc, char* argv[]){
 	
 	//maybe sleep to give routers time to figure out life?
 	
-	//Manager sends a “hey go ahead and start the link state algorithm” message to all of the routers
-
 	//Manager waits for messages from all routers saying they are done with link state algorithm
 	
 	//Manager sends messages to all routers according to file

@@ -43,7 +43,7 @@ vector<string> linkStateAlgorithm(vector<vector<int>> neighbors, int id, int udp
 	
 }
 
-void writeRoutingTableToFile(string fileName, vector<string> routingTable){
+ofstream writeRoutingTableToFile(string fileName, vector<string> routingTable){
   ofstream myStream;
   myStream.open(fileName);
   printf("printing to file\n");
@@ -52,6 +52,7 @@ void writeRoutingTableToFile(string fileName, vector<string> routingTable){
     myStream<<routingTable[i]<<"\t";
     myStream<<"\n";
   }
+  return myStream;
 	//write the routing table to the .out file
 }
 
@@ -88,14 +89,17 @@ void router(int id){
 	sprintf(tempPacket.data, "hello from router #%d, my udp port is %d", id, udpPort);
 	send_msg(tcpSocket, &tempPacket);
 
-	//neighbor id, distance, port
+	//neighbor id, port, distance/weight
 	vector<vector<int> > neighbors;
 	
-	//receive neighbor information from tecp connection with manager
+	//loop while data isn't -1
+	//receive neighbor information from tcp connection with manager
 	packet to_recv;
 	recv_msg(tcpSocket, &to_recv);
 	printf("router #%d received %s\n", id, to_recv.data);
-	//wait for go ahead from manager
+	
+	//wait for go ahead from manager: this will be the -1 received after the loop 
+	//so don't wait for go ahead from master, just start after loop is done
 	
 	//Routers do link state algorithm to make the routing tables
 	vector<string> routingTable = linkStateAlgorithm(neighbors, id, udpSocket);
@@ -105,14 +109,9 @@ void router(int id){
         printf("id = %d\n", id);
         string sid = to_string(id);
 	string filename = sid + ".out";
-	
-	//open write to file
-	//int fileptr = 0;
-	//open ofstream
         
 	//Routers write their routing tables to their file
-	//writeRoutingTableToFile(fileptr, routingTable);
-        writeRoutingTableToFile(filename, routingTable);
+    ofstream fileStream = writeRoutingTableToFile(filename, routingTable);
         
 	
 	//Routers send message to manager when done
