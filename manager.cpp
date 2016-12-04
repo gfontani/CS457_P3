@@ -23,12 +23,15 @@ void send_msg(int sock, packet* to_send){
 }
 
 void recv_msg(int sock, packet* recvd){
+        while(true){
 	int n = recv(sock,reinterpret_cast<char*>(recvd),sizeof(packet), MSG_WAITALL);
 	if (n < 0) error("ERROR reading from socket");
+        if (n > 0){break;}
+        }
 }
 
 //server listen, returns listening socket fd
-int server_bind_listen(int portno){
+int server_bind_listen(int portno){ //portno = port number
 	int sock;
 	struct sockaddr_in serv_addr;
 	sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -160,15 +163,16 @@ int server_accept(int sock){
 	int socket = getRouterTcp(atoi(router.c_str()));
 	send_msg(socket, &to_send);
 	printf("Manager sent to %s: %s\n", router.c_str(), to_send.data);
+        
  }
  
  //GABBY
  //send the router neighbor information to each router, line by line
- void sendNeighborInformation(ifstream& fileptr){
+  bool sendNeighborInformation(ifstream& fileptr){
 	 if(fileptr.is_open()){
 		//Reads neighbors from the file, sending info line by line to each router
 		string line = "";
-		while(getline(fileptr, line) && 0 != line.compare("-1")){
+		while(getline(fileptr, line) && 0 != line.compare("-1")){ //returns 0 if line and "-1" are equal.
 			vector<string> routerInfo;
 			boost::split(routerInfo, line, boost::is_any_of(" "));
 			if(3 != routerInfo.size()){
@@ -184,15 +188,30 @@ int server_accept(int sock){
 	 else{
 		 error("fileptr is not open in sendNeighborInformation, exiting forecefully");
 	 }
+	 return true;
  }
  
  //BEN
 //send messages to all routers according to file
  void sendMessages(ifstream& fileptr){
-	 
+	 string line = "";
 	//loop
-		//reads rest of file line by line
-		//messages to router
+          while(getline(fileptr, line) && 0 != line.compare("-1")){
+            sleep(1);
+            vector<string> fromTo;
+            boost::split(fromTo, line, boost::is_any_of(" "));
+            string fromRouter = fromTo[0];
+            string toRouter = fromTo[1];
+       printf("from*** %s to %s\n", fromRouter.c_str(), toRouter.c_str());
+            packet to_send;
+            sprintf(to_send.data, "%s,%s,%s",  fromRouter.c_str(), toRouter.c_str(), "Are we there yet?");
+            printf("sending mesg packet\n");
+            int socket = getRouterTcp(atoi(fromRouter.c_str()));
+            send_msg(socket, &to_send);
+           
+            
+          }
+		
 		//sleeps between sending messages
 	 
  }
@@ -213,7 +232,7 @@ int main(int argc, char* argv[]){
 	//read first number in file
 	string line = "";
 	getline(fileptr, line);
-	totalRouterNum = atoi(line.c_str()); //hardcoded for debugging
+        totalRouterNum = atoi(line.c_str()); //hardcoded for debugging
 	
 	makeRouterTable();
 	//printRouterTable();
@@ -226,13 +245,19 @@ int main(int argc, char* argv[]){
 	createRouters();
 	printRouterTable();
 	//send neighbor information
-	sendNeighborInformation(fileptr);
-	
+        
+        bool done = false;
+        
+        while(!done){ //wait for method to complete before moving on.
+	 done = sendNeighborInformation(fileptr);
+        }
+
 	//maybe sleep to give routers time to figure out life?
 	
 	//Manager waits for messages from all routers saying they are done with link state algorithm
 	
 	//Manager sends messages to all routers according to file
+	cout<<"printint messages"<<endl;
 	sendMessages(fileptr);
 	
 	//Kill remaining child processes
