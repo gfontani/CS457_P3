@@ -30,6 +30,12 @@ typedef struct{
 	char data[DATA_SIZE]; //simple char* string
 } packet;
 
+//packet structure for initial lsps
+typedef struct{
+	int id; //id of router that sends the message
+	vector<int> neighbors; //the neighbors of router that sends the message
+} udp_packet;
+
 
 void error(char const * msg);
 int managerTcpPort;
@@ -44,5 +50,7 @@ vector<vector<int>> allNeighborWeights;
 vector<vector<int>> routingTable;
 void recv_msg(int sock, packet* recvd);
 void send_msg(int sock, packet* to_send);
+void recv_udp_msg(int sock, packet* recvd);
+void send_udp_msg(int sock, int port, packet* to_send);
 
 #endif

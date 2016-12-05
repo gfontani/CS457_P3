@@ -31,6 +31,37 @@ void recv_msg(int sock, packet* recvd){
         }
 }
 
+void recv_udp_msg(int sock, packet* recvd){
+	struct sockaddr_in remaddr; /* remote address */ 
+	socklen_t addrlen = sizeof(remaddr); /* length of addresses */
+	int n = 1;
+	recvfrom(sock, reinterpret_cast<char*>(recvd), sizeof(udp_packet), 0, (struct sockaddr *)&remaddr, &addrlen);
+	if (n < 0) error("ERROR reading from socket");
+}
+
+void send_udp_msg(int sock, int port, packet* to_send){
+	struct hostent *hp; /* host information */ 
+	struct sockaddr_in servaddr; /* server address */ 
+	
+	/* fill in the server's address and data */ 
+	memset((char*)&servaddr, 0, sizeof(servaddr)); 
+	servaddr.sin_family = AF_INET; 
+	servaddr.sin_port = htons(port); 
+	
+	/* look up the address of the server given its name */ 
+	hp = gethostbyname("localhost"); 
+	if (!hp) { 
+		error("could not obtain address of localhost"); 
+	} 
+	
+	/* put the host's address into the server address structure */ 
+	memcpy((void *)&servaddr.sin_addr, hp->h_addr_list[0], hp->h_length);
+	
+	//send message
+	int n = sendto(sock, reinterpret_cast<const char*>(to_send), strlen(reinterpret_cast<const char*>(to_send)), 0, (struct sockaddr *)&servaddr, sizeof(servaddr));
+	if (n < 0) error("ERROR writing to socket");
+}
+
 //server listen, returns listening socket fd
 int server_bind_listen(int portno){ //portno = port number
 	int sock;
