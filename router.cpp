@@ -29,21 +29,22 @@ int client_connect(const char* addr, int portno){
 	return sock;
 } 
 
-//link state algorithm/djikstras
-//returns the routing table built from the link state algorithm
-vector<string> linkStateAlgorithm(vector<vector<int>> neighbors, int id, int udpSocket){
+void exchangeISP(int udpSocket, int id){
+
+}
+
+//djikstras algorithm
+//modifies the routing table built from the link state algorithm
+void djikstrasAlgorithm(int id){
   
 		//Routers wait for an LSP(link state packet) for every router
 
 		//COPY FROM INTERNET!!!?
-		vector<string> routingTable;
-                string tommy = "I am a routing table";  //for testing remove
-                routingTable.push_back(tommy);
-		return routingTable;
+                routingTable.push_back(-1);
 	
 }
 
-ofstream writeRoutingTableToFile(string fileName, vector<string> routingTable){
+ofstream writeRoutingTableToFile(string fileName, vector<int> routingTable){
   ofstream myStream;
   myStream.open(fileName);
   printf("printing to file\n");
@@ -78,7 +79,6 @@ int udp_listen(int id){
 
 //main router method
 void router(int id){
-
 	//sets up udp socket
 	int udpSocket = udp_listen(id);
 
@@ -89,9 +89,6 @@ void router(int id){
 	sprintf(tempPacket.data, "hello from router #%d, my udp port is %d", id, udpPort);
 	send_msg(tcpSocket, &tempPacket);
 
-	//neighbor id, port, distance/weight
-	vector<vector<int> > neighbors;
-	
 	//loop while data isn't -1
 	//receive neighbor information from tcp connection with manager
 	packet to_recv;
@@ -102,7 +99,8 @@ void router(int id){
 	//so don't wait for go ahead from master, just start after loop is done
 	
 	//Routers do link state algorithm to make the routing tables
-	vector<string> routingTable = linkStateAlgorithm(neighbors, id, udpSocket);
+	exchangeISP(udpSocket, id);
+	djikstrasAlgorithm(id);
 	
 	//create file name based on id
 	//should be id.out
@@ -111,7 +109,7 @@ void router(int id){
 	string filename = sid + ".out";
         
 	//Routers write their routing tables to their file
-    ofstream fileStream = writeRoutingTableToFile(filename, routingTable);
+    	ofstream fileStream = writeRoutingTableToFile(filename, routingTable);
         
 	
 	//Routers send message to manager when done

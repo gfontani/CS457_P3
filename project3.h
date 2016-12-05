@@ -34,6 +34,14 @@ typedef struct{
 void error(char const * msg);
 int managerTcpPort;
 int totalRouterNum;
+//The UDP ports of my neighbors. -1 if not a neighbor
+vector<int> myNeighborsPorts;
+//table with the weights of all the neighbors oof all the routers
+//-1 if there is no neighbor
+vector<vector<int>> allNeighborWeights;
+//list of distance to other nodes and next hop
+//format: destination | weight | nextHop
+vector<int> routingTable;
 void recv_msg(int sock, packet* recvd);
 void send_msg(int sock, packet* to_send);
 
