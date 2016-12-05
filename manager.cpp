@@ -34,7 +34,7 @@ void recv_udp_msg(int sock, packet* recvd){
 	struct sockaddr_in remaddr; /* remote address */ 
 	socklen_t addrlen = sizeof(remaddr); /* length of addresses */
 	int n = 1;
-	recvfrom(sock, reinterpret_cast<char*>(recvd), sizeof(udp_packet), 0, (struct sockaddr *)&remaddr, &addrlen);
+	recvfrom(sock, reinterpret_cast<char*>(recvd), sizeof(packet), 0, (struct sockaddr *)&remaddr, &addrlen);
 	if (n < 0) error("ERROR reading from socket");
 }
 

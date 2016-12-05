@@ -79,44 +79,92 @@ string collectNeighborInfo(int tcpSocket, int id){
 	return lspMessage;
 }
 
-void updateTables(char* message){
-	
-	
+bool allTrue(vector<bool> received){
+	for(unsigned int i = 0; i < received.size(); i++){
+		if(received[i] == false){
+			return false;
+		}
+	}
+	return true;
 }
 
-void exchangeISP(int udpSocket, int id){
+
+void sendLsp(string lsp, int id, int receivedFrom){
+	int udpSocket = udp_listen(id);
+	packet to_send;
+	sprintf(to_send.data, lsp.c_str());
+	for(unsigned int i = 0; i < myNeighborsPorts.size(); i++){
+		if((myNeighborsPorts[i] != -1) && ((int)i != receivedFrom)){
+			int port = myNeighborsPorts[i];
+			send_udp_msg(udpSocket, port, &to_send);
+			//printf("router %d sent to router %d on udp: %s\n", id, i, to_send.data);
+		}
+	}
+	close(udpSocket);	
+}
+
+void receiveLsps(int udpSocket, int id){
+	//keep track of which routers we have received isps from
+	vector<bool> receivedLsp;
+	for(int i = 0; i < totalRouterNum; i++){
+		receivedLsp.push_back(false);
+	}
+	receivedLsp[id] = true;
+	while(!allTrue(receivedLsp)){
+		packet to_recv;
+		recv_udp_msg(udpSocket, &to_recv);
+		vector<string> neighborInfo;
+		boost::split(neighborInfo, to_recv.data, boost::is_any_of(","));
+		int from = atoi(neighborInfo[0].c_str());
+		//printf("router %d received on udp: %s from : %d\n", id, to_recv.data, from);
+		if(false == receivedLsp[from]){
+			//fork
+			int pid = fork();
+			if(pid==0){
+				//if parent
+				//store data
+				unsigned int counter = 1;
+				int neighbor = 0;
+				int weight = 0;
+				while(counter < neighborInfo.size()-1){
+					neighbor = atoi(neighborInfo[counter].c_str());
+					counter++;
+					weight = atoi(neighborInfo[counter].c_str());
+					counter++;
+					allNeighborWeights[from][neighbor] = weight;
+				}
+				receivedLsp[from] = true;
+			}
+			else if(pid>0){
+				//if child
+				//sendLSP to neighbors
+				sendLsp(to_recv.data, id, from);
+				exit(0);
+			}
+			else{
+			//failed to fork
+				error("failed to fork, exiting forcefully?");
+			}
+		}
+		
+	}
+}
+
+void exchangeLSP(int udpSocket, int id, string lsp){
 	//fork
 	int pid = fork();
 	if(pid==0){
 		//if parent
 		//parent listen on udp for all routers’ info and build LSP table
-		packet to_recv;
-		recv_udp_msg(udpSocket, &to_recv);
-		printf("router %d received on udp: %s\n", id, to_recv.data);
-		recv_udp_msg(udpSocket, &to_recv);
-		printf("router %d received on udp: %s\n", id, to_recv.data);
-		
+		receiveLsps(udpSocket, id);
 	}
 	else if(pid>0){			
 		//if child
 		//wait x time (for other routers to be listening on udp)
 		sleep(3);
-		int udpSocket2 = udp_listen(id);
-		
 		//child sends own LSP to all neighbors in the string form:
 		//"my_number, neighbors_1, cost_1,...., neighbors_n, cost_n"
-		packet to_send;
-		sprintf(to_send.data, "Test the udp from %d", id);
-		for(unsigned int i = 0; i < myNeighborsPorts.size(); i++){
-			if(myNeighborsPorts[i] != -1){
-				int port = myNeighborsPorts[i];
-				send_udp_msg(udpSocket2, port, &to_send);
-				printf("router %d sent to router %d on udp: %s\n", id, i, to_send.data);
-			}
-
-		}
-		close(udpSocket2);
-		
+		sendLsp(lsp, id, -1);
 		exit(0);
 	}
 	else{
@@ -201,8 +249,8 @@ void router(int id){
 
 	//receive all neighbor info from router and fill out appropriate tables
 	string lspMessage = collectNeighborInfo(tcpSocket, id);
-	lspMessage = id + "," + lspMessage;
-	//printf("%s\n", lspMessage.c_str());
+	lspMessage = to_string(id) + "," + lspMessage;
+	printf("%s\n", lspMessage.c_str());
     writeAllNeighborWeightsToFile(fileStream);
     writeMyNeighborsPortsToFile(fileStream);
     writeRoutingTableToFile(fileStream);
@@ -219,10 +267,9 @@ void router(int id){
 	//so don't wait for go ahead from master, just start after loop is done
 	
 	//Routers do link state algorithm to make the routing tables
-	exchangeISP(udpSocket, id);
+	exchangeLSP(udpSocket, id, lspMessage);
 	djikstrasAlgorithm(id);
-	
-        
+	writeAllNeighborWeightsToFile(fileStream);
 	//Routers write their routing tables to their file
 	
 	//Routers send message to manager when done
