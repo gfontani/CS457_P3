@@ -1,5 +1,6 @@
 //Gabriella Fontani, Ben Scott, Chad Eitel
 #include <project3.h>
+#include <ospf.cpp>
 
 int udpPort;
 
