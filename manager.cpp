@@ -220,7 +220,8 @@ int server_accept(int sock){
  }
  
  //BEN
-//send messages to all routers according to file
+//read the second half of the file and notify routers
+//what other routers they need to send msgs too.
  void sendMessages(ifstream& fileptr){
     if(fileptr.is_open()){
 	 string line = "";
