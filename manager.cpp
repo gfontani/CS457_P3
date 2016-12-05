@@ -222,10 +222,12 @@ int server_accept(int sock){
  //BEN
 //send messages to all routers according to file
  void sendMessages(ifstream& fileptr){
+    if(fileptr.is_open()){
 	 string line = "";
+         cout<<"totnum of routers = "<<totalRouterNum<<endl;
           //reads the second part of the file.
           while(getline(fileptr, line) && 0 != line.compare("-1")){
-            sleep(5);
+            //sleep(5);
             vector<string> fromTo;
             boost::split(fromTo, line, boost::is_any_of(" "));
             string fromRouter = fromTo[0];
@@ -233,15 +235,32 @@ int server_accept(int sock){
             int socket = getRouterTcp(atoi(fromRouter.c_str()));
        printf("from*** %s to %s\n", fromRouter.c_str(), toRouter.c_str());
             packet router_msg;
-            
             sprintf(router_msg.data, "%s,%s,%s",  fromRouter.c_str(), toRouter.c_str(), "Are we there yet?");
             
             printf("sending mesg packet[%s] to %s \n", router_msg.data, fromRouter.c_str());
-            
+          
             send_msg(socket, &router_msg);
+            //cout<<"receiving message"<<endl;
+             packet ack;
+            recv_msg(socket, &ack);
+            printf("message receieved %s\n", ack.data);
            
-            
           }
+          for(int i = 0; i < totalRouterNum; i++){
+			int socket = getRouterTcp(i);
+			packet to_send;
+			sprintf(to_send.data, "-1");
+			send_msg(socket, &to_send);
+			printf("messager sent to %d: %s\n", i, to_send.data);
+                        packet ack;
+                        recv_msg(socket, &ack);
+                        printf("message receieved %s\n", ack.data);
+		}
+            
+    }
+	 else{
+		 error("fileptr is not open in sendNeighborInformation, exiting forecefully");
+	 }
 		
 		//sleeps between sending messages
 	 
@@ -284,7 +303,7 @@ int main(int argc, char* argv[]){
 	
 	//Manager sends messages to all routers according to file
 	cout<<"calling send Messages"<<endl;
-	//sendMessages(fileptr);
+	sendMessages(fileptr);
 	
 	//Kill remaining child processes
 	
