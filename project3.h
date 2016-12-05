@@ -42,6 +42,7 @@ vector<vector<int>> allNeighborWeights;
 //list of distance to other nodes and next hop
 //format: destination | weight | nextHop
 vector<vector<int>> routingTable;
+vector<int> routersToSendMessegesTo;
 void recv_msg(int sock, packet* recvd);
 void send_msg(int sock, packet* to_send);
 
