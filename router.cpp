@@ -29,6 +29,31 @@ int client_connect(const char* addr, int portno){
 	return sock;
 } 
 
+int udp_listen(int id){
+	int fd;
+	udpPort = managerTcpPort + id;
+	if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+		perror("cannot create socket");
+		return 0;
+	}
+	struct sockaddr_in myaddr;
+	memset((char *)&myaddr, 0, sizeof(myaddr));
+	myaddr.sin_family = AF_INET;
+	myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	myaddr.sin_port = htons(udpPort); //set port
+
+	//try 13 ports
+	for(int i=0; i<13; i++){
+		myaddr.sin_port = htons(udpPort);
+		if (bind(fd, (struct sockaddr *)&myaddr, sizeof(myaddr)) == 0)
+			break;
+		if(i==12)
+			error("ERROR on binding"); //could not bind to 13 consecutive ports
+		udpPort++;
+	}
+	return fd;
+}
+
 string collectNeighborInfo(int tcpSocket, int id){
 	//loop while data isn't -1
 	//receive neighbor information from tcp connection with manager
@@ -52,11 +77,52 @@ string collectNeighborInfo(int tcpSocket, int id){
 		printf("router #%d received %s\n", id, to_recv.data);
 	}
 	return lspMessage;
+}
 
+void updateTables(char* message){
+	
+	
 }
 
 void exchangeISP(int udpSocket, int id){
+	//fork
+	int pid = fork();
+	if(pid==0){
+		//if parent
+		//parent listen on udp for all routers’ info and build LSP table
+		packet to_recv;
+		recv_udp_msg(udpSocket, &to_recv);
+		printf("router %d received on udp: %s\n", id, to_recv.data);
+		recv_udp_msg(udpSocket, &to_recv);
+		printf("router %d received on udp: %s\n", id, to_recv.data);
+		
+	}
+	else if(pid>0){			
+		//if child
+		//wait x time (for other routers to be listening on udp)
+		sleep(3);
+		int udpSocket2 = udp_listen(id);
+		
+		//child sends own LSP to all neighbors in the string form:
+		//"my_number, neighbors_1, cost_1,...., neighbors_n, cost_n"
+		packet to_send;
+		sprintf(to_send.data, "Test the udp from %d", id);
+		for(unsigned int i = 0; i < myNeighborsPorts.size(); i++){
+			if(myNeighborsPorts[i] != -1){
+				int port = myNeighborsPorts[i];
+				send_udp_msg(udpSocket2, port, &to_send);
+				printf("router %d sent to router %d on udp: %s\n", id, i, to_send.data);
+			}
 
+		}
+		close(udpSocket2);
+		
+		exit(0);
+	}
+	else{
+	//failed to fork
+		error("failed to fork, exiting forcefully?");
+	}
 }
 
 //djikstras algorithm
@@ -72,28 +138,8 @@ void djikstrasAlgorithm(int id){
 	
 }
 
-int udp_listen(int id){
-	int fd;
-	udpPort = managerTcpPort + id;
-	if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		perror("cannot create socket");
-		return 0;
-	}
-	struct sockaddr_in myaddr;
-	memset((char *)&myaddr, 0, sizeof(myaddr));
-	myaddr.sin_family = AF_INET;
-	myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	myaddr.sin_port = htons(udpPort); //set port
-
-	if (bind(fd, (struct sockaddr *)&myaddr, sizeof(myaddr)) < 0) {
-		perror("bind failed");
-		return 0;
-	}
-	return fd;
-}
-
 void writeRoutingTableToFile(ofstream& myStream){
-	printf("printing to file\n");
+	//printf("printing to file\n");
 	myStream<<"Routing table: \ndest\tweight\tnextHop\n";
 	for(unsigned int i = 0; i < routingTable.size(); i++){
 		for(unsigned int j = 0; j < routingTable[i].size(); j++){
@@ -104,7 +150,7 @@ void writeRoutingTableToFile(ofstream& myStream){
 }
 
 void writeMyNeighborsPortsToFile(ofstream& myStream){
-	printf("printing to file\n");
+	//printf("printing to file\n");
 	myStream<<"My neighbors udp ports: \n";
 	for(unsigned int i = 0; i < myNeighborsPorts.size(); i++){
 		myStream<<i<<"\t";
@@ -117,7 +163,7 @@ void writeMyNeighborsPortsToFile(ofstream& myStream){
 }
 
 void writeAllNeighborWeightsToFile(ofstream& myStream){
-	printf("printing to file\n");
+	//printf("printing to file\n");
 	myStream<<"All Router's neighbor's weights: \n";
 	myStream<<"\t";
 	for(unsigned int i = 0; i < allNeighborWeights.size(); i++){
@@ -155,9 +201,12 @@ void router(int id){
 
 	//receive all neighbor info from router and fill out appropriate tables
 	string lspMessage = collectNeighborInfo(tcpSocket, id);
+	lspMessage = id + "," + lspMessage;
+	//printf("%s\n", lspMessage.c_str());
     writeAllNeighborWeightsToFile(fileStream);
     writeMyNeighborsPortsToFile(fileStream);
     writeRoutingTableToFile(fileStream);
+
 /*        printf("second recieve #%d\n", id);
         sleep(10);  
         packet router_msg;
