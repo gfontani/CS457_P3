@@ -40,17 +40,19 @@ void djikstrasAlgorithm(int id){
 		//Routers wait for an LSP(link state packet) for every router
 
 		//COPY FROM INTERNET!!!?
-                routingTable.push_back(-1);
+		vector<int> temp;
+		temp.push_back(-1);
+                routingTable.push_back(temp);
 	
 }
 
-ofstream writeRoutingTableToFile(string fileName, vector<int> routingTable){
+ofstream writeRoutingTableToFile(string fileName){
   ofstream myStream;
   myStream.open(fileName);
   printf("printing to file\n");
   for(unsigned int i = 0; i<routingTable.size(); ++i){
   // cout<<"routing table i " << i << " " << routingTable[i] <<"\n";
-    myStream<<routingTable[i]<<"\t";
+    myStream<<routingTable[0][i]<<"\t";
     myStream<<"\n";
   }
 	//write the routing table to the .out file
@@ -116,7 +118,7 @@ void router(int id){
 	string filename = sid + ".out";
         
 	//Routers write their routing tables to their file
-    	ofstream fileStream = writeRoutingTableToFile(filename, routingTable);
+    	ofstream fileStream = writeRoutingTableToFile(filename);
 	
 	//Routers send message to manager when done
 

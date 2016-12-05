@@ -80,15 +80,39 @@ int server_accept(int sock){
  }
  
  //GABBY
- //method to create a table with number or routers and port numbers
+ //creates a table with number or routers and port numbers
  //will save a space for ports but not fill it in (because we don't know the ports yet)
- void makeRouterTable(){
-	 for(int i = 0; i < totalRouterNum; i++){
-		 vector<int> router;
-		 router.push_back(-1);
-		 router.push_back(-1);
-		 routerAndPorts.push_back(router);
-	 }
+ //initializes the tables that the routers use to the correct size full of -1
+ void makeAllTables(){
+	//initialize routerAndPorts table
+	for(int i = 0; i < totalRouterNum; i++){
+	 vector<int> router;
+	 router.push_back(-1);
+	 router.push_back(-1);
+	 routerAndPorts.push_back(router);
+	}
+
+	//initialize allNeighborWeights table. Will be n by n
+	for(int i = 0; i < totalRouterNum; i++){
+		vector<int> router;
+		for(int j = 0; j < totalRouterNum; j++){
+			router.push_back(-1);
+		}
+		allNeighborWeights.push_back(router);
+	}
+
+	//initialize myNeighborsPorts. will be size n
+	for(int i = 0; i < totalRouterNum; i++){
+	 myNeighborsPorts.push_back(-1);
+	}
+
+	//initialize routingTable. will be n by 3.
+	for(int i = 0; i < totalRouterNum; i++){
+	 vector<int> router;
+	 router.push_back(-1);
+	 router.push_back(-1);
+	 routingTable.push_back(router);
+	}
  }
  
  void printRouterTable(){
@@ -237,7 +261,7 @@ int main(int argc, char* argv[]){
 	getline(fileptr, line);
         totalRouterNum = atoi(line.c_str()); //hardcoded for debugging
 	
-	makeRouterTable();
+	makeAllTables();
 	//printRouterTable();
 	//setup TCP server
 	int startingPort = 3360;
