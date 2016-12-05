@@ -2,6 +2,7 @@
 #include <project3.h>
 #include <router.cpp>
 
+
 //The table will have as many rows as there are routers
 //and 3 columns: <routerNumber> | <UDP port> | <tcpinformation>
 vector<vector<int> > routerAndPorts;
@@ -325,6 +326,31 @@ int main(int argc, char* argv[]){
 
 	close(managerTcpSock);
 	closeAllSockets();
+
+/*	textbook example
+-1	5	10	-1
+5	-1	3	11
+10	3	-1	2	
+-1	11	2	-1
+*/
+
+/*
+vector<int> temp;
+temp.push_back(-1);temp.push_back(5);temp.push_back(10);temp.push_back(-1);
+allNeighborWeights.push_back(temp);
+temp.clear();
+temp.push_back(5);temp.push_back(-1);temp.push_back(3);temp.push_back(11);
+allNeighborWeights.push_back(temp);
+temp.clear();
+temp.push_back(10);temp.push_back(3);temp.push_back(-1);temp.push_back(2);
+allNeighborWeights.push_back(temp);
+temp.clear();
+temp.push_back(-1);temp.push_back(11);temp.push_back(2);temp.push_back(-1);
+allNeighborWeights.push_back(temp);
+ospf(3);
+ospf(1);
+*/
+
 	printf("exiting manager\n");
 	exit(0);
 }
