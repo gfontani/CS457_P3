@@ -80,15 +80,40 @@ int server_accept(int sock){
  }
  
  //GABBY
- //method to create a table with number or routers and port numbers
+ //creates a table with number or routers and port numbers
  //will save a space for ports but not fill it in (because we don't know the ports yet)
- void makeRouterTable(){
-	 for(int i = 0; i < totalRouterNum; i++){
-		 vector<int> router;
-		 router.push_back(-1);
-		 router.push_back(-1);
-		 routerAndPorts.push_back(router);
-	 }
+ //initializes the tables that the routers use to the correct size full of -1
+ void makeAllTables(){
+	//initialize routerAndPorts table
+	for(int i = 0; i < totalRouterNum; i++){
+	 vector<int> router;
+	 router.push_back(-1);
+	 router.push_back(-1);
+	 routerAndPorts.push_back(router);
+	}
+
+	//initialize allNeighborWeights table. Will be n by n
+	for(int i = 0; i < totalRouterNum; i++){
+		vector<int> router;
+		for(int j = 0; j < totalRouterNum; j++){
+			router.push_back(-1);
+		}
+		allNeighborWeights.push_back(router);
+	}
+
+	//initialize myNeighborsPorts. will be size n
+	for(int i = 0; i < totalRouterNum; i++){
+	 myNeighborsPorts.push_back(-1);
+	}
+
+	//initialize routingTable. will be n by 3.
+	for(int i = 0; i < totalRouterNum; i++){
+	 vector<int> router;
+	 router.push_back(-1);
+	 router.push_back(-1);
+	 router.push_back(-1);
+	 routingTable.push_back(router);
+	}
  }
  
  void printRouterTable(){
@@ -134,9 +159,6 @@ int server_accept(int sock){
 			
 			printf("manager has recvd msg: %s\n", tempPacket.data);
 			addUdpFromRouterMessage(tempPacket.data, i);
-			//receive tcp message from router containing router's udp port number
-	
-			//store router's udp port number in vector vector
 
 			//for debugging only, will need to keep open eventually
 			//close(tempRouterSock);
@@ -168,7 +190,7 @@ int server_accept(int sock){
  
  //GABBY
  //send the router neighbor information to each router, line by line
-  bool sendNeighborInformation(ifstream& fileptr){
+  void sendNeighborInformation(ifstream& fileptr){
 	 if(fileptr.is_open()){
 		//Reads neighbors from the file, sending info line by line to each router
 		string line = "";
@@ -183,12 +205,18 @@ int server_accept(int sock){
 			sendInfoToRouter(routerInfo[1], routerInfo[0], routerInfo[2]);
 		} 
 		//Manager sends a “hey go ahead and start the link state algorithm” message to all of the routers
-			//send -1 to all routers
+		//send -1 to all routers
+		for(int i = 0; i < totalRouterNum; i++){
+			int socket = getRouterTcp(i);
+			packet to_send;
+			sprintf(to_send.data, "-1");
+			send_msg(socket, &to_send);
+			printf("Manager sent to %d: %s\n", i, to_send.data);
+		}
 	 }
 	 else{
 		 error("fileptr is not open in sendNeighborInformation, exiting forecefully");
 	 }
-	 return true;
  }
  
  //BEN
@@ -237,8 +265,8 @@ int main(int argc, char* argv[]){
 	getline(fileptr, line);
         totalRouterNum = atoi(line.c_str()); //hardcoded for debugging
 	
-	makeRouterTable();
-	//printRouterTable();
+	makeAllTables();
+
 	//setup TCP server
 	int startingPort = 3360;
 	managerTcpSock = server_bind_listen(startingPort);
@@ -248,12 +276,7 @@ int main(int argc, char* argv[]){
 	createRouters();
 	printRouterTable();
 	//send neighbor information
-        
-        bool done = false;
-        
-        while(!done){ //wait for method to complete before moving on.
-	 done = sendNeighborInformation(fileptr);
-        }
+	sendNeighborInformation(fileptr);
 
 	//maybe sleep to give routers time to figure out life?
 	
@@ -261,7 +284,7 @@ int main(int argc, char* argv[]){
 	
 	//Manager sends messages to all routers according to file
 	cout<<"calling send Messages"<<endl;
-	sendMessages(fileptr);
+	//sendMessages(fileptr);
 	
 	//Kill remaining child processes
 	
