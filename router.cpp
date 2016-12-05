@@ -92,18 +92,18 @@ void router(int id){
 	//neighbor id, port, distance/weight
 	vector<vector<int> > neighbors;
 	
-	//loop while data isn't -1
+	
 	//receive neighbor information from tcp connection with manager
        
 	packet to_recv;
 	recv_msg(tcpSocket, &to_recv);
 	printf("router #%d received %s\n", id, to_recv.data);
         
-        printf("second recieve\n");
-        sleep(10);
-        packet msg_data;
-	recv_msg(tcpSocket, &msg_data);
-        printf("msg router #%d recieved %s\n", id, msg_data.data);
+        printf("second recieve #%d\n", id);
+        sleep(10);  
+        packet router_msg;
+	recv_msg(tcpSocket, &router_msg);//so right now this recv is getting the same data as the previous recieve.  
+        printf("msg router #%d recieved %s\n", id, router_msg.data);
         
         
 	//wait for go ahead from manager: this will be the -1 received after the loop 
