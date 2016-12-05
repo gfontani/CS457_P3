@@ -29,6 +29,32 @@ int client_connect(const char* addr, int portno){
 	return sock;
 } 
 
+string collectNeighborInfo(int tcpSocket, int id){
+	//loop while data isn't -1
+	//receive neighbor information from tcp connection with manager
+	string lspMessage = "";
+	packet to_recv;
+	recv_msg(tcpSocket, &to_recv);
+	printf("router #%d received %s\n", id, to_recv.data);
+	while(0 != strcmp(to_recv.data, "-1")){
+		vector<string> neighborInfo;
+		boost::split(neighborInfo, to_recv.data, boost::is_any_of(","));
+		int neighborId = atoi(neighborInfo[0].c_str());
+		int neighborUdp = atoi(neighborInfo[1].c_str());
+		int weight = atoi(neighborInfo[2].c_str());
+		//add weight to big table
+		allNeighborWeights[id][neighborId] = weight;
+		//add udp to neighbor vector
+		myNeighborsPorts[neighborId] = neighborUdp;
+		//add info to lspMessage
+		lspMessage = lspMessage + neighborInfo[0] + "," + neighborInfo[2] + ",";
+		recv_msg(tcpSocket, &to_recv);
+		printf("router #%d received %s\n", id, to_recv.data);
+	}
+	return lspMessage;
+
+}
+
 void exchangeISP(int udpSocket, int id){
 
 }
@@ -44,19 +70,6 @@ void djikstrasAlgorithm(int id){
 		temp.push_back(-1);
                 routingTable.push_back(temp);
 	
-}
-
-ofstream writeRoutingTableToFile(string fileName){
-  ofstream myStream;
-  myStream.open(fileName);
-  printf("printing to file\n");
-  for(unsigned int i = 0; i<routingTable.size(); ++i){
-  // cout<<"routing table i " << i << " " << routingTable[i] <<"\n";
-    myStream<<routingTable[0][i]<<"\t";
-    myStream<<"\n";
-  }
-	//write the routing table to the .out file
-	return myStream;
 }
 
 int udp_listen(int id){
@@ -79,8 +92,57 @@ int udp_listen(int id){
 	return fd;
 }
 
+void writeRoutingTableToFile(ofstream& myStream){
+	printf("printing to file\n");
+	myStream<<"Routing table: \ndest\tweight\tnextHop\n";
+	for(unsigned int i = 0; i < routingTable.size(); i++){
+		for(unsigned int j = 0; j < routingTable[i].size(); j++){
+			myStream<<routingTable[i][j]<<"\t";
+		}
+		myStream<<"\n";
+	}
+}
+
+void writeMyNeighborsPortsToFile(ofstream& myStream){
+	printf("printing to file\n");
+	myStream<<"My neighbors udp ports: \n";
+	for(unsigned int i = 0; i < myNeighborsPorts.size(); i++){
+		myStream<<i<<"\t";
+	}
+	myStream<<"\n";
+	for(unsigned int i = 0; i < myNeighborsPorts.size(); i++){
+		myStream<<myNeighborsPorts[i]<<"\t";
+	}
+	myStream<<"\n";
+}
+
+void writeAllNeighborWeightsToFile(ofstream& myStream){
+	printf("printing to file\n");
+	myStream<<"All Router's neighbor's weights: \n";
+	myStream<<"\t";
+	for(unsigned int i = 0; i < allNeighborWeights.size(); i++){
+		myStream<<i<<"\t";
+	}
+	myStream<<"\n";
+	for(unsigned int i = 0; i < allNeighborWeights.size(); i++){
+		myStream<<i<<"\t";
+		for(unsigned int j = 0; j < allNeighborWeights[i].size(); j++){
+			myStream<<allNeighborWeights[i][j]<<"\t";
+		}
+		myStream<<"\n";
+	}
+}
+
 //main router method
 void router(int id){
+	//create file name based on id
+	//should be id.out
+	printf("id = %d\n", id);
+	string sid = to_string(id);
+	string filename = sid + ".out";
+	//open ofstream to use for debugging and final stuff
+	ofstream fileStream;
+	fileStream.open(filename);
 	//sets up udp socket
 	int udpSocket = udp_listen(id);
 
@@ -90,18 +152,18 @@ void router(int id){
 	packet tempPacket;
 	sprintf(tempPacket.data, "hello from router #%d, my udp port is %d", id, udpPort);
 	send_msg(tcpSocket, &tempPacket);
-	//loop while data isn't -1
-	//receive neighbor information from tcp connection with manager
-       
-	packet to_recv;
-	recv_msg(tcpSocket, &to_recv);
-	printf("router #%d received %s\n", id, to_recv.data);
-        
-        printf("second recieve #%d\n", id);
+
+	//receive all neighbor info from router and fill out appropriate tables
+	string lspMessage = collectNeighborInfo(tcpSocket, id);
+    writeAllNeighborWeightsToFile(fileStream);
+    writeMyNeighborsPortsToFile(fileStream);
+    writeRoutingTableToFile(fileStream);
+/*        printf("second recieve #%d\n", id);
         sleep(10);  
         packet router_msg;
 	recv_msg(tcpSocket, &router_msg);//so right now this recv is getting the same data as the previous recieve.  
         printf("msg router #%d recieved %s\n", id, router_msg.data);
+*/
         
         
 	//wait for go ahead from manager: this will be the -1 received after the loop 
@@ -111,14 +173,8 @@ void router(int id){
 	exchangeISP(udpSocket, id);
 	djikstrasAlgorithm(id);
 	
-	//create file name based on id
-	//should be id.out
-        printf("id = %d\n", id);
-        string sid = to_string(id);
-	string filename = sid + ".out";
         
 	//Routers write their routing tables to their file
-    	ofstream fileStream = writeRoutingTableToFile(filename);
 	
 	//Routers send message to manager when done
 
