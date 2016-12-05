@@ -55,8 +55,42 @@ string collectNeighborInfo(int tcpSocket, int id){
 
 }
 
-void exchangeISP(int udpSocket, int id){
+/* listens to manager and collects what routers it needs to send
+ * msgs too.  Fills the routersToSendMessagesTo vector.
+ * vector holds only what routers, this router needs to send msgs too.
+ * ie if vector holds 2,4,5 then this vector sends messages to routers 
+ * 2 then 4 then 5.
+ */
+string collectMessagesToSendInfo(int tcpSocket, int id){
+	//loop while data isn't -1
+	//receive neighbor information from tcp connection with manager
+	string messages = "";
+	packet to_recv;
+	recv_msg(tcpSocket, &to_recv);
+	printf("messages router #%d received %s\n", id, to_recv.data);
+	while(0 != strcmp(to_recv.data, "-1")){
+		vector<string> messageInfo;
+		boost::split(messageInfo, to_recv.data, boost::is_any_of(","));
+                int fromRouter = atoi(messageInfo[0].c_str());
+                int toRouter = atoi(messageInfo[1].c_str());
+                printf("router: from %d to %d\n", fromRouter, toRouter);
+                routersToSendMessegesTo.push_back(toRouter);
+                packet tempPacket;
+                sprintf(tempPacket.data, "hello from router #%d, thanks for the data %d", id, udpPort);
+                
+                send_msg(tcpSocket, &tempPacket);//send ack msg
+		recv_msg(tcpSocket, &to_recv);
+		
+	}//Send mesg saying we are complete
+	packet tempPacket;
+	sprintf(tempPacket.data, " from router #%d, all done %d", id, udpPort);
+	send_msg(tcpSocket, &tempPacket);
+	
+	return "tots me goats";
 
+}
+void exchangeISP(int udpSocket, int id){
+  //What is this?
 }
 
 //djikstras algorithm
@@ -93,7 +127,7 @@ int udp_listen(int id){
 }
 
 void writeRoutingTableToFile(ofstream& myStream){
-	printf("printing to file\n");
+	//printf("printing to file\n");
 	myStream<<"Routing table: \ndest\tweight\tnextHop\n";
 	for(unsigned int i = 0; i < routingTable.size(); i++){
 		for(unsigned int j = 0; j < routingTable[i].size(); j++){
@@ -104,7 +138,7 @@ void writeRoutingTableToFile(ofstream& myStream){
 }
 
 void writeMyNeighborsPortsToFile(ofstream& myStream){
-	printf("printing to file\n");
+	//printf("printing to file\n");
 	myStream<<"My neighbors udp ports: \n";
 	for(unsigned int i = 0; i < myNeighborsPorts.size(); i++){
 		myStream<<i<<"\t";
@@ -117,7 +151,7 @@ void writeMyNeighborsPortsToFile(ofstream& myStream){
 }
 
 void writeAllNeighborWeightsToFile(ofstream& myStream){
-	printf("printing to file\n");
+	//printf("printing to file\n");
 	myStream<<"All Router's neighbor's weights: \n";
 	myStream<<"\t";
 	for(unsigned int i = 0; i < allNeighborWeights.size(); i++){
@@ -158,11 +192,10 @@ void router(int id){
     writeAllNeighborWeightsToFile(fileStream);
     writeMyNeighborsPortsToFile(fileStream);
     writeRoutingTableToFile(fileStream);
-/*        printf("second recieve #%d\n", id);
-        sleep(10);  
-        packet router_msg;
-	recv_msg(tcpSocket, &router_msg);//so right now this recv is getting the same data as the previous recieve.  
-        printf("msg router #%d recieved %s\n", id, router_msg.data);
+    sleep(3);
+    cout<<collectMessagesToSendInfo(tcpSocket, id)<< id <<endl;
+    
+/*        
 */
         
         
