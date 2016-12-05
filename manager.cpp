@@ -195,19 +195,22 @@ int server_accept(int sock){
 //send messages to all routers according to file
  void sendMessages(ifstream& fileptr){
 	 string line = "";
-	//loop
+          //reads the second part of the file.
           while(getline(fileptr, line) && 0 != line.compare("-1")){
-            sleep(1);
+            sleep(5);
             vector<string> fromTo;
             boost::split(fromTo, line, boost::is_any_of(" "));
             string fromRouter = fromTo[0];
             string toRouter = fromTo[1];
-       printf("from*** %s to %s\n", fromRouter.c_str(), toRouter.c_str());
-            packet to_send;
-            sprintf(to_send.data, "%s,%s,%s",  fromRouter.c_str(), toRouter.c_str(), "Are we there yet?");
-            printf("sending mesg packet\n");
             int socket = getRouterTcp(atoi(fromRouter.c_str()));
-            send_msg(socket, &to_send);
+       printf("from*** %s to %s\n", fromRouter.c_str(), toRouter.c_str());
+            packet router_msg;
+            
+            sprintf(router_msg.data, "%s,%s,%s",  fromRouter.c_str(), toRouter.c_str(), "Are we there yet?");
+            
+            printf("sending mesg packet[%s] to %s \n", router_msg.data, fromRouter.c_str());
+            
+            send_msg(socket, &router_msg);
            
             
           }
@@ -257,7 +260,7 @@ int main(int argc, char* argv[]){
 	//Manager waits for messages from all routers saying they are done with link state algorithm
 	
 	//Manager sends messages to all routers according to file
-	cout<<"printint messages"<<endl;
+	cout<<"calling send Messages"<<endl;
 	sendMessages(fileptr);
 	
 	//Kill remaining child processes
