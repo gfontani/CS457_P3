@@ -49,12 +49,12 @@ ofstream writeRoutingTableToFile(string fileName, vector<int> routingTable){
   myStream.open(fileName);
   printf("printing to file\n");
   for(unsigned int i = 0; i<routingTable.size(); ++i){
-   cout<<"routing table i " << routingTable[i] <<"\n";
+  // cout<<"routing table i " << i << " " << routingTable[i] <<"\n";
     myStream<<routingTable[i]<<"\t";
     myStream<<"\n";
   }
-  return myStream;
 	//write the routing table to the .out file
+	return myStream;
 }
 
 int udp_listen(int id){
@@ -88,13 +88,20 @@ void router(int id){
 	packet tempPacket;
 	sprintf(tempPacket.data, "hello from router #%d, my udp port is %d", id, udpPort);
 	send_msg(tcpSocket, &tempPacket);
-
 	//loop while data isn't -1
 	//receive neighbor information from tcp connection with manager
+       
 	packet to_recv;
 	recv_msg(tcpSocket, &to_recv);
 	printf("router #%d received %s\n", id, to_recv.data);
-	
+        
+        printf("second recieve #%d\n", id);
+        sleep(10);  
+        packet router_msg;
+	recv_msg(tcpSocket, &router_msg);//so right now this recv is getting the same data as the previous recieve.  
+        printf("msg router #%d recieved %s\n", id, router_msg.data);
+        
+        
 	//wait for go ahead from manager: this will be the -1 received after the loop 
 	//so don't wait for go ahead from master, just start after loop is done
 	
@@ -110,7 +117,6 @@ void router(int id){
         
 	//Routers write their routing tables to their file
     	ofstream fileStream = writeRoutingTableToFile(filename, routingTable);
-        
 	
 	//Routers send message to manager when done
 
@@ -118,6 +124,7 @@ void router(int id){
 	
 	//When routers send and receive they write to their .out file
 	
+	fileStream.close();
 	//exit router gracefully
 	printf("exiting router %d\n", id);
 	close(udpSocket);
