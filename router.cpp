@@ -85,6 +85,40 @@ void updateTables(char* message){
 	
 }
 
+/* listens to manager and collects what routers it needs to send
+ * msgs too.  Fills the routersToSendMessagesTo vector.
+ * vector holds only what routers, this router needs to send msgs too.
+ * ie if vector holds 2,4,5 then this vector sends messages to routers 
+ * 2 then 4 then 5.
+ */
+string collectMessagesToSendInfo(int tcpSocket, int id){
+	//loop while data isn't -1
+	//receive neighbor information from tcp connection with manager
+	string messages = "";
+	packet to_recv;
+	recv_msg(tcpSocket, &to_recv);
+	printf("messages router #%d received %s\n", id, to_recv.data);
+	while(0 != strcmp(to_recv.data, "-1")){
+		vector<string> messageInfo;
+		boost::split(messageInfo, to_recv.data, boost::is_any_of(","));
+                int fromRouter = atoi(messageInfo[0].c_str());
+                int toRouter = atoi(messageInfo[1].c_str());
+                printf("router: from %d to %d\n", fromRouter, toRouter);
+                routersToSendMessegesTo.push_back(toRouter);
+                packet tempPacket;
+                sprintf(tempPacket.data, "hello from router #%d, thanks for the data %d", id, udpPort);
+                
+                send_msg(tcpSocket, &tempPacket);//send ack msg
+		recv_msg(tcpSocket, &to_recv);
+		
+	}//Send mesg saying we are complete
+	packet tempPacket;
+	sprintf(tempPacket.data, " from router #%d, all done %d", id, udpPort);
+	send_msg(tcpSocket, &tempPacket);
+	
+	return "tots me goats";
+}
+
 void exchangeISP(int udpSocket, int id){
 	//fork
 	int pid = fork();
@@ -207,13 +241,11 @@ void router(int id){
     writeAllNeighborWeightsToFile(fileStream);
     writeMyNeighborsPortsToFile(fileStream);
     writeRoutingTableToFile(fileStream);
+    sleep(3);
+    cout<<collectMessagesToSendInfo(tcpSocket, id)<< id <<endl;
+    
 
-/*        printf("second recieve #%d\n", id);
-        sleep(10);  
-        packet router_msg;
-	recv_msg(tcpSocket, &router_msg);//so right now this recv is getting the same data as the previous recieve.  
-        printf("msg router #%d recieved %s\n", id, router_msg.data);
-*/
+
         
         
 	//wait for go ahead from manager: this will be the -1 received after the loop 
