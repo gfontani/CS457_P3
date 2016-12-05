@@ -2,6 +2,7 @@
 #include <project3.h>
 #include <router.cpp>
 
+
 //The table will have as many rows as there are routers
 //and 3 columns: <routerNumber> | <UDP port> | <tcpinformation>
 vector<vector<int> > routerAndPorts;
@@ -28,6 +29,37 @@ void recv_msg(int sock, packet* recvd){
 	if (n < 0) error("ERROR reading from socket");
         if (n > 0){break;}
         }
+}
+
+void recv_udp_msg(int sock, packet* recvd){
+	struct sockaddr_in remaddr; /* remote address */ 
+	socklen_t addrlen = sizeof(remaddr); /* length of addresses */
+	int n = 1;
+	recvfrom(sock, reinterpret_cast<char*>(recvd), sizeof(udp_packet), 0, (struct sockaddr *)&remaddr, &addrlen);
+	if (n < 0) error("ERROR reading from socket");
+}
+
+void send_udp_msg(int sock, int port, packet* to_send){
+	struct hostent *hp; /* host information */ 
+	struct sockaddr_in servaddr; /* server address */ 
+	
+	/* fill in the server's address and data */ 
+	memset((char*)&servaddr, 0, sizeof(servaddr)); 
+	servaddr.sin_family = AF_INET; 
+	servaddr.sin_port = htons(port); 
+	
+	/* look up the address of the server given its name */ 
+	hp = gethostbyname("localhost"); 
+	if (!hp) { 
+		error("could not obtain address of localhost"); 
+	} 
+	
+	/* put the host's address into the server address structure */ 
+	memcpy((void *)&servaddr.sin_addr, hp->h_addr_list[0], hp->h_length);
+	
+	//send message
+	int n = sendto(sock, reinterpret_cast<const char*>(to_send), strlen(reinterpret_cast<const char*>(to_send)), 0, (struct sockaddr *)&servaddr, sizeof(servaddr));
+	if (n < 0) error("ERROR writing to socket");
 }
 
 //server listen, returns listening socket fd
@@ -314,6 +346,31 @@ int main(int argc, char* argv[]){
 
 	close(managerTcpSock);
 	closeAllSockets();
+
+/*	textbook example
+-1	5	10	-1
+5	-1	3	11
+10	3	-1	2	
+-1	11	2	-1
+*/
+
+/*
+vector<int> temp;
+temp.push_back(-1);temp.push_back(5);temp.push_back(10);temp.push_back(-1);
+allNeighborWeights.push_back(temp);
+temp.clear();
+temp.push_back(5);temp.push_back(-1);temp.push_back(3);temp.push_back(11);
+allNeighborWeights.push_back(temp);
+temp.clear();
+temp.push_back(10);temp.push_back(3);temp.push_back(-1);temp.push_back(2);
+allNeighborWeights.push_back(temp);
+temp.clear();
+temp.push_back(-1);temp.push_back(11);temp.push_back(2);temp.push_back(-1);
+allNeighborWeights.push_back(temp);
+ospf(3);
+ospf(1);
+*/
+
 	printf("exiting manager\n");
 	exit(0);
 }
