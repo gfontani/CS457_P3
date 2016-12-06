@@ -43,6 +43,10 @@ int udp_listen(int id){
 	myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	myaddr.sin_port = htons(udpPort); //set port
 
+	struct timeval timeout={5,0}; //set timeout for 2 seconds
+	/* set receive UDP message timeout */
+	setsockopt(fd,SOL_SOCKET,SO_RCVTIMEO,(char*)&timeout,sizeof(struct timeval));
+	
 	//try 13 ports
 	for(int i=0; i<13; i++){
 		myaddr.sin_port = htons(udpPort);
@@ -149,6 +153,15 @@ void receiveLsps(int udpSocket, int id, ofstream& fileStream){
 		}
 		
 	}
+	
+	while(true){
+		packet temp;
+		int recvNum = recv_udp_msg(udpSocket, &temp);
+		if(recvNum < 0){
+			break;
+		}
+
+	}
 }
 
 void exchangeLSP(int udpSocket, int id, string lsp, ofstream& fileStream){
@@ -162,7 +175,7 @@ void exchangeLSP(int udpSocket, int id, string lsp, ofstream& fileStream){
 	else if(pid>0){	
 		//if child
 		//wait x time (for other routers to be listening on udp)
-		sleep(3);
+		sleep(2);
 		//child sends own LSP to all neighbors in the string form:
 		//"my_number, neighbors_1, cost_1,...., neighbors_n, cost_n"
 		sendLsp(lsp, id, -1, fileStream);
@@ -221,14 +234,39 @@ void receiveAndForwardMessages(int id, int udpSocket, ofstream& fileStream){
  * ie if vector holds 2,4,5 then this vector sends messages to routers 
  * 2 then 4 then 5.
  */
-string collectMessagesToSendInfo(int tcpSocket, int udpSocket, int id){
+void collectMessagesToSendInfo(int tcpSocket, int udpSocket, int id, ofstream& fileStream){
 	//loop while data isn't -1
-	string messages = "";
-	packet to_recv;
-	recv_udp_msg(udpSocket, &to_recv);
-	printf("messages router #%d received %s\n", id, to_recv.data);
-	while(0 != strcmp(to_recv.data, "-1")){
+	while(true){
+		packet* to_recv = new packet();
+		recv_udp_msg(udpSocket, to_recv);
+		printf("messages router #%d received %s\n", id, to_recv->data);
+		if(0 == strcmp(to_recv->data, "-1")){
+			break;
+		}
+		//receive and parse the message
 		vector<string> messageInfo;
+		boost::split(messageInfo, to_recv->data, boost::is_any_of(","));
+		int from = atoi(messageInfo[0].c_str());
+		int to = atoi(messageInfo[1].c_str());
+		string message = messageInfo[2];
+		fileStream<<"Time: "<<currentDateTime()<<" Received message \""<<message<<"\" from router "<<from<<"\n";
+		//check destination
+		if(to == id){
+			//I am the destination
+			//write final message to file
+			fileStream<<"Time: "<<currentDateTime()<<" I am the last router, will not forward message.\n"; 
+		}
+		else{
+			//I am not the destination
+			//forward packet and write message
+			int nextHop = getNextHop(to);
+			int nextHopUdp = myNeighborsPorts[nextHop];
+			send_udp_msg(udpSocket, nextHopUdp, to_recv);
+			fileStream<<"Time: "<<currentDateTime()<<" Forwarding to router "<<nextHop<<"\n"; 
+		}
+		
+		delete(to_recv);
+		/*vector<string> messageInfo;
 		boost::split(messageInfo, to_recv.data, boost::is_any_of(","));
                 int fromRouter = atoi(messageInfo[0].c_str());
                 int toRouter = atoi(messageInfo[1].c_str());
@@ -245,11 +283,8 @@ string collectMessagesToSendInfo(int tcpSocket, int udpSocket, int id){
                // packet tempPacket;
                // sprintf(tempPacket.data, "hello from router #%d, thanks for the data %d", id, udpPort);
                 
-                
-		recv_udp_msg(tcpSocket, &to_recv);
-                sleep(5);
+        */  
         }
-        return "toats me goats";
 }
 
 void writeRoutingTableToFile(ofstream& myStream){
@@ -319,10 +354,15 @@ void router(int id){
 	//Routers do link state algorithm to make the routing tables
 	exchangeLSP(udpSocket, id, lspMessage, fileStream);
 	ospf(id);
+	//send message to manager saying I'm done!!!
+	packet temp;
+	sprintf(temp.data, "%d done!", id);
+	send_msg(tcpSocket, &temp);
+	
 	//Routers write their routing tables to their file
 	writeRoutingTableToFile(fileStream);
     sleep(3);
-    //cout<<collectMessagesToSendInfo(tcpSocket, udpSocket,  id)<< id <<endl;
+    collectMessagesToSendInfo(tcpSocket, udpSocket,  id, fileStream);
        
 	//wait for go ahead from manager: this will be the -1 received after the loop 
 	//so don't wait for go ahead from master, just start after loop is done

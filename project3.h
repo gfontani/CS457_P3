@@ -47,7 +47,7 @@ vector<vector<int>> routingTable;
 vector<int> routersToSendMessegesTo;
 void recv_msg(int sock, packet* recvd);
 void send_msg(int sock, packet* to_send);
-void recv_udp_msg(int sock, packet* recvd);
+int recv_udp_msg(int sock, packet* recvd);
 void send_udp_msg(int sock, int port, packet* to_send);
 
 #endif

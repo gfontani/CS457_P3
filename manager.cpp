@@ -46,12 +46,11 @@ void recv_msg(int sock, packet* recvd){
         }
 }
 
-void recv_udp_msg(int sock, packet* recvd){
+int recv_udp_msg(int sock, packet* recvd){
 	struct sockaddr_in remaddr; /* remote address */ 
 	socklen_t addrlen = sizeof(remaddr); /* length of addresses */
-	int n = 1;
-	recvfrom(sock, reinterpret_cast<char*>(recvd), sizeof(packet), 0, (struct sockaddr *)&remaddr, &addrlen);
-	if (n < 0) error("ERROR reading from socket");
+	int n = recvfrom(sock, reinterpret_cast<char*>(recvd), sizeof(packet), 0, (struct sockaddr *)&remaddr, &addrlen);
+	return n;
 }
 
 void send_udp_msg(int sock, int port, packet* to_send){
@@ -349,15 +348,20 @@ int main(int argc, char* argv[]){
 	printRouterTable();
 	//send neighbor information
 	sendNeighborInformation(fileptr, fileStream);
-
-	//maybe sleep to give routers time to figure out life?
-	
+	printf("manager sent neighbor information\n");
 	//Manager waits for messages from all routers saying they are done with link state algorithm
-	
+	for(int i = 0; i < totalRouterNum; i++){
+		int socket = routerAndPorts[i][1];
+		packet temp;
+		recv_msg(socket, &temp);
+		printf("manager received %s\n", temp.data);
+	}
+	printf("manager finished waiting information\n");
+
 	//Manager sends messages to all routers according to file
 	cout<<"calling send Messages"<<endl;
         sleep(5);
-	//sendMessages(fileptr);
+	sendMessages(fileptr);
 	
 	//Kill remaining child processes
 	
