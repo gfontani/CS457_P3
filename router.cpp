@@ -174,19 +174,6 @@ void exchangeLSP(int udpSocket, int id, string lsp, ofstream& fileStream){
 	}
 }
 
-//djikstras algorithm
-//modifies the routing table built from the link state algorithm
-void djikstrasAlgorithm(int id){
-  
-		//Routers wait for an LSP(link state packet) for every router
-
-		//COPY FROM INTERNET!!!?
-		vector<int> temp;
-		temp.push_back(-1);
-                routingTable.push_back(temp);
-	
-}
-
 //takes the destination
 //returns the next hop router id
 int getNextHop(int destRouter){
@@ -327,14 +314,11 @@ void router(int id){
 	//receive all neighbor info from router and fill out appropriate tables
 	string lspMessage = collectNeighborInfo(tcpSocket, id, fileStream);
 	lspMessage = to_string(id) + "," + lspMessage;
-    writeAllNeighborWeightsToFile(fileStream);
-    writeMyNeighborsPortsToFile(fileStream);
-    writeRoutingTableToFile(fileStream);
 	//Routers do link state algorithm to make the routing tables
 	exchangeLSP(udpSocket, id, lspMessage, fileStream);
-	djikstrasAlgorithm(id);
+	ospf(id);
 	//Routers write their routing tables to their file
-	writeAllNeighborWeightsToFile(fileStream);
+	writeRoutingTableToFile(fileStream);
     sleep(3);
     cout<<collectMessagesToSendInfo(tcpSocket, udpSocket,  id)<< id <<endl;
        
