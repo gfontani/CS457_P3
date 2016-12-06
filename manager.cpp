@@ -357,7 +357,7 @@ int main(int argc, char* argv[]){
 	//Manager sends messages to all routers according to file
 	cout<<"calling send Messages"<<endl;
         sleep(5);
-	sendMessages(fileptr);
+	//sendMessages(fileptr);
 	
 	//Kill remaining child processes
 	

@@ -322,7 +322,7 @@ void router(int id){
 	//Routers write their routing tables to their file
 	writeRoutingTableToFile(fileStream);
     sleep(3);
-    cout<<collectMessagesToSendInfo(tcpSocket, udpSocket,  id)<< id <<endl;
+    //cout<<collectMessagesToSendInfo(tcpSocket, udpSocket,  id)<< id <<endl;
        
 	//wait for go ahead from manager: this will be the -1 received after the loop 
 	//so don't wait for go ahead from master, just start after loop is done
