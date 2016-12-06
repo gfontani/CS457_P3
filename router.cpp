@@ -188,6 +188,48 @@ void djikstrasAlgorithm(int id){
 	
 }
 
+//takes the destination
+//returns the next hop router id
+int getNextHop(int destRouter){
+	for(unsigned int i = 0; i < routingTable.size(); i++){
+		if(destRouter == routingTable[i][0]){
+			return routingTable[i][2];
+		}
+	}
+	return -1;
+}
+
+//receive message
+//forward message if not end router
+//messages are in the format: from,to,message
+void receiveAndForwardMessages(int id, int udpSocket, ofstream fileStream){
+	//receive and parse the message
+	packet to_recv;
+	recv_udp_msg(udpSocket, &to_recv);
+	vector<string> messageInfo;
+	boost::split(messageInfo, to_recv.data, boost::is_any_of(","));
+	int from = atoi(messageInfo[0].c_str());
+	int to = atoi(messageInfo[1].c_str());
+	string message = messageInfo[2];
+	fileStream<<"Time: "<<currentDateTime()<<"\t\tReceived message \""<<message<<"\" from router "<<from<<"\n";
+	//check destination
+	if(to == id){
+		//I am the destination
+		//write final message to file
+		
+		fileStream<<"Time: "<<currentDateTime()<<"\t\tI am the last router, will not forward message.\n"; 
+	}
+	else{
+		//I am not the destination
+		//forward packet and write message
+		int nextHop = getNextHop(to);
+		int nextHopUdp = myNeighborsPorts[nextHop];
+		send_udp_msg(udpSocket, nextHopUdp, &to_recv);
+		fileStream<<"Time: "<<currentDateTime()<<"\t\tForwarding to router "<<nextHop<<"\n"; 
+	}
+}
+
+
 /* listens to manager and collects what routers it needs to send
  * msgs too.  Fills the routersToSendMessagesTo vector.
  * vector holds only what routers, this router needs to send msgs too.

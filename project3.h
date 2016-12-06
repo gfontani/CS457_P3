@@ -30,6 +30,7 @@ typedef struct{
 	char data[DATA_SIZE]; //simple char* string
 } packet;
 
+string currentDateTime();
 void error(char const * msg);
 int managerTcpPort;
 int totalRouterNum;
