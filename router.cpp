@@ -49,7 +49,7 @@ int udp_listen(int id){
 		if (bind(fd, (struct sockaddr *)&myaddr, sizeof(myaddr)) == 0)
 			break;
 		if(i==12)
-			error("ERROR on binding"); //could not bind to 13 consecutive ports
+			error("ERROR on udp (line 52) binding"); //could not bind to 13 consecutive ports
 		udpPort++;
 	}
 	return fd;
@@ -225,29 +225,31 @@ string collectMessagesToSendInfo(int tcpSocket, int udpSocket, int id){
 	//loop while data isn't -1
 	string messages = "";
 	packet to_recv;
-	recv_msg(tcpSocket, &to_recv);
+	recv_udp_msg(udpSocket, &to_recv);
 	printf("messages router #%d received %s\n", id, to_recv.data);
 	while(0 != strcmp(to_recv.data, "-1")){
 		vector<string> messageInfo;
 		boost::split(messageInfo, to_recv.data, boost::is_any_of(","));
-		int fromRouter = atoi(messageInfo[0].c_str());
-		int toRouter = atoi(messageInfo[1].c_str());
-		printf("router: from %d to %d\n", fromRouter, toRouter);
-		//send udp mesg to next router. port has to be next hop.
-		
-		int hop_port = myNeighborsPorts[toRouter]; //need to change this to get next hop.
-		printf("sending udp from %d to %d port %d\n", id, toRouter, hop_port);
-		send_udp_msg(udpSocket, hop_port, &to_recv); //sending on to next router
-		
-		routersToSendMessegesTo.push_back(toRouter); //add data to messages to send vector
-		packet tempPacket;
-		sprintf(tempPacket.data, "hello from router #%d, thanks for the data %d", id, udpPort);
-		
-		send_msg(tcpSocket, &tempPacket);//send ack msg
-		recv_msg(tcpSocket, &to_recv);
-		sleep(2);
-	}
-        return "";
+                int fromRouter = atoi(messageInfo[0].c_str());
+                int toRouter = atoi(messageInfo[1].c_str());
+                printf("router: from %d to %d\n", fromRouter, toRouter);
+                //send udp mesg to next router. port has to be next hop.
+                
+                
+                int hop_port = getNextHop(toRouter);
+                
+                printf("sending udp from %d to %d port %d\n", id, toRouter, hop_port);
+                send_udp_msg(udpSocket, hop_port, &to_recv); //sending on to next router
+                
+                routersToSendMessegesTo.push_back(toRouter); //add data to messages to send vector
+               // packet tempPacket;
+               // sprintf(tempPacket.data, "hello from router #%d, thanks for the data %d", id, udpPort);
+                
+                
+		recv_udp_msg(tcpSocket, &to_recv);
+                sleep(5);
+        }
+        return "toats me goats";
 }
 
 void writeRoutingTableToFile(ofstream& myStream){
