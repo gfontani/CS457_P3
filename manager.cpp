@@ -202,6 +202,7 @@ int server_accept(int sock){
 			int tempRouterSock = server_accept(managerTcpSock);
 			routerAndPorts[i][1] = tempRouterSock;
 			packet tempPacket;
+			bzero(tempPacket.data, DATA_SIZE);
 			recv_msg(tempRouterSock, &tempPacket);
 			
 			fileStream<<"Time: "<<currentDateTime()<<"manager has recvd msg: "<<tempPacket.data<<"\n";
@@ -228,6 +229,7 @@ int server_accept(int sock){
  void sendInfoToRouter(string router, string neighbor, string weight, ofstream& fileStream){
 	int neighborUdp = getRouterUdp(atoi(neighbor.c_str()));
 	packet to_send;
+	bzero(to_send.data, DATA_SIZE);
 	sprintf(to_send.data, "%s,%d,%s", neighbor.c_str(), neighborUdp, weight.c_str());
 	int socket = getRouterTcp(atoi(router.c_str()));
 	send_msg(socket, &to_send);
@@ -256,6 +258,7 @@ int server_accept(int sock){
 		for(int i = 0; i < totalRouterNum; i++){
 			int socket = getRouterTcp(i);
 			packet to_send;
+			bzero(to_send.data, DATA_SIZE);
 			sprintf(to_send.data, "-1");
 			send_msg(socket, &to_send);
 			fileStream<<"Time: "<<currentDateTime()<<" Manager sent to "<<i<<": "<<to_send.data<<"\n";
@@ -284,6 +287,7 @@ int server_accept(int sock){
        printf("Manager: intial router port %d", initialRouterPort);
        printf("from*** %s to %s\n", fromRouter.c_str(), toRouter.c_str());
        packet router_msg;
+       bzero(router_msg.data, DATA_SIZE);
        sprintf(router_msg.data, "-1,%s,%s", toRouter.c_str(), line.c_str());
        
        printf("sending mesg packet[%s] to %s \n", router_msg.data, fromRouter.c_str());
@@ -299,6 +303,7 @@ int server_accept(int sock){
                         int nextRouterPort = routerAndPorts[i][0];
 			 
 			packet to_send;
+			bzero(to_send.data, DATA_SIZE);
 			sprintf(to_send.data, "-1");
                         
 			send_udp_msg(udpSocket, nextRouterPort, &to_send);
@@ -354,6 +359,7 @@ int main(int argc, char* argv[]){
 	for(int i = 0; i < totalRouterNum; i++){
 		int socket = routerAndPorts[i][1];
 		packet temp;
+		bzero(temp.data, DATA_SIZE);
 		recv_msg(socket, &temp);
 		printf("manager received %s\n", temp.data);
 	}

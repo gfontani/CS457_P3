@@ -64,6 +64,7 @@ string collectNeighborInfo(int tcpSocket, int id, ofstream& fileStream){
 	//receive neighbor information from tcp connection with manager
 	string lspMessage = "";
 	packet to_recv;
+	bzero(to_recv.data, DATA_SIZE);
 	recv_msg(tcpSocket, &to_recv);
 	fileStream<<"Time: "<<currentDateTime()<<" Router #"<<id<<" received from manager: "<<to_recv.data<<"\n";
 	while(0 != strcmp(to_recv.data, "-1")){
@@ -97,6 +98,7 @@ bool allTrue(vector<bool> received){
 void sendLsp(string lsp, int id, int receivedFrom, ofstream& fileStream){
 	int udpSocket = udp_listen(id);
 	packet to_send;
+	bzero(to_send.data, DATA_SIZE);
 	sprintf(to_send.data, lsp.c_str());
 	for(unsigned int i = 0; i < myNeighborsPorts.size(); i++){
 		if((myNeighborsPorts[i] != -1) && ((int)i != receivedFrom)){
@@ -117,6 +119,7 @@ void receiveLsps(int udpSocket, int id, ofstream& fileStream){
 	receivedLsp[id] = true;
 	while(!allTrue(receivedLsp)){
 		packet to_recv;
+		bzero(to_recv.data, DATA_SIZE);
 		recv_udp_msg(udpSocket, &to_recv);
 		vector<string> neighborInfo;
 		boost::split(neighborInfo, to_recv.data, boost::is_any_of(","));
@@ -156,6 +159,7 @@ void receiveLsps(int udpSocket, int id, ofstream& fileStream){
 	
 	while(true){
 		packet temp;
+		bzero(temp.data, DATA_SIZE);
 		int recvNum = recv_udp_msg(udpSocket, &temp);
 		if(recvNum < 0){
 			break;
@@ -289,7 +293,7 @@ void router(int id){
 	//create file name based on id
 	//should be id.out
 	string sid = to_string(id);
-	string filename = sid + ".out";
+	string filename = "router" + sid + ".out";
 	//open ofstream to use for debugging and final stuff
 	ofstream fileStream;
 	fileStream.open(filename);
@@ -300,6 +304,7 @@ void router(int id){
 	int tcpSocket = client_connect("localhost", managerTcpPort);
 	//send message to manager with udp port
 	packet tempPacket;
+	bzero(tempPacket.data, DATA_SIZE);
 	sprintf(tempPacket.data, "hello from router #%d, my udp port is %d", id, udpPort);
 	send_msg(tcpSocket, &tempPacket);
 	fileStream<<"Time: "<<currentDateTime()<<" Sent to manager: "<<tempPacket.data<<"\n";
@@ -312,6 +317,7 @@ void router(int id){
 	ospf(id);
 	//send message to manager saying I'm done!!!
 	packet temp;
+	bzero(temp.data, DATA_SIZE);
 	sprintf(temp.data, "%d done!", id);
 	send_msg(tcpSocket, &temp);
 	
