@@ -3,6 +3,7 @@
 #include <ospf.cpp>
 
 int udpPort;
+ofstream fileStream;
 
 //client setup
 int client_connect(const char* addr, int portno){
@@ -59,7 +60,7 @@ int udp_listen(int id){
 	return fd;
 }
 
-string collectNeighborInfo(int tcpSocket, int id, ofstream& fileStream){
+string collectNeighborInfo(int tcpSocket, int id){
 	//loop while data isn't -1
 	//receive neighbor information from tcp connection with manager
 	string lspMessage = "";
@@ -95,7 +96,7 @@ bool allTrue(vector<bool> received){
 	return true;
 }
 
-void sendLsp(string lsp, int id, int receivedFrom, ofstream& fileStream){
+void sendLsp(string lsp, int id, int receivedFrom){
 	int udpSocket = udp_listen(id);
 	packet to_send;
 	bzero(to_send.data, DATA_SIZE);
@@ -110,7 +111,7 @@ void sendLsp(string lsp, int id, int receivedFrom, ofstream& fileStream){
 	close(udpSocket);	
 }
 
-void receiveLsps(int udpSocket, int id, ofstream& fileStream){
+void receiveLsps(int udpSocket, int id){
 	//keep track of which routers we have received isps from
 	vector<bool> receivedLsp;
 	for(int i = 0; i < totalRouterNum; i++){
@@ -146,7 +147,7 @@ void receiveLsps(int udpSocket, int id, ofstream& fileStream){
 			else if(pid>0){
 				//if child
 				//sendLSP to neighbors
-				sendLsp(to_recv.data, id, from, fileStream);
+				sendLsp(to_recv.data, id, from);
 				exit(0);
 			}
 			else{
@@ -168,13 +169,13 @@ void receiveLsps(int udpSocket, int id, ofstream& fileStream){
 	}
 }
 
-void exchangeLSP(int udpSocket, int id, string lsp, ofstream& fileStream){
+void exchangeLSP(int udpSocket, int id, string lsp){
 	//fork
 	int pid = fork();
 	if(pid==0){
 		//if parent
 		//parent listen on udp for all routers’ info and build LSP table
-		receiveLsps(udpSocket, id, fileStream);
+		receiveLsps(udpSocket, id);
 	}
 	else if(pid>0){	
 		//if child
@@ -182,7 +183,7 @@ void exchangeLSP(int udpSocket, int id, string lsp, ofstream& fileStream){
 		sleep(2);
 		//child sends own LSP to all neighbors in the string form:
 		//"my_number, neighbors_1, cost_1,...., neighbors_n, cost_n"
-		sendLsp(lsp, id, -1, fileStream);
+		sendLsp(lsp, id, -1);
 		exit(0);
 	}
 	else{
@@ -205,7 +206,7 @@ int getNextHop(int destRouter){
 //receive message
 //forward message if not end router
 //messages are in the format: from,to,message
-void collectMessagesToSendInfo(int tcpSocket, int udpSocket, int id, ofstream& fileStream){
+void collectMessagesToSendInfo(int tcpSocket, int udpSocket, int id){
 	//loop while data isn't -1
 	while(true){
 		packet* to_recv = new packet();
@@ -295,7 +296,6 @@ void router(int id){
 	string sid = to_string(id);
 	string filename = "router" + sid + ".out";
 	//open ofstream to use for debugging and final stuff
-	ofstream fileStream;
 	fileStream.open(filename);
 	//sets up udp socket
 	int udpSocket = udp_listen(id);
@@ -310,10 +310,10 @@ void router(int id){
 	fileStream<<"Time: "<<currentDateTime()<<" Sent to manager: "<<tempPacket.data<<"\n";
 
 	//receive all neighbor info from router and fill out appropriate tables
-	string lspMessage = collectNeighborInfo(tcpSocket, id, fileStream);
+	string lspMessage = collectNeighborInfo(tcpSocket, id);
 	lspMessage = to_string(id) + "," + lspMessage;
 	//Routers do link state algorithm to make the routing tables
-	exchangeLSP(udpSocket, id, lspMessage, fileStream);
+	exchangeLSP(udpSocket, id, lspMessage);
 	ospf(id);
 	//send message to manager saying I'm done!!!
 	packet temp;
@@ -324,7 +324,7 @@ void router(int id){
 	//Routers write their routing tables to their file
 	writeRoutingTableToFile(fileStream);
     sleep(3);
-    collectMessagesToSendInfo(tcpSocket, udpSocket,  id, fileStream);
+    collectMessagesToSendInfo(tcpSocket, udpSocket,  id);
        
 	//wait for go ahead from manager: this will be the -1 received after the loop 
 	//so don't wait for go ahead from master, just start after loop is done
