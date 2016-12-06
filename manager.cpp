@@ -20,12 +20,16 @@ void error(char const * msg)
 //copied from: http://stackoverflow.com/questions/997946/how-to-get-current-time-and-date-in-c
 // Get current date/time, format is YYYY-MM-DD.HH:mm:ss
 string currentDateTime() {
-    time_t     now = time(0);
-    struct tm  tstruct;
-    char       buf[80];
-    tstruct = *localtime(&now);
-    strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
-    return buf;
+	timeval curTime;
+	gettimeofday(&curTime, NULL);
+	int milli = curTime.tv_usec / 1000;
+
+	char buffer [80];
+	strftime(buffer, 80, "%H:%M:%S", localtime(&curTime.tv_sec));
+
+	char currentTime[88] = "";
+	sprintf(currentTime, "%s:%d", buffer, milli);
+	return currentTime;
 }
 
 void send_msg(int sock, packet* to_send){

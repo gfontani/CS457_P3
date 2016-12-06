@@ -22,6 +22,8 @@
 #include<fstream> //include for talking to files.
 #include <vector>
 #include <boost/algorithm/string.hpp>
+#include <sys/time.h>
+#include <time.h>
 
 using namespace std;
 
