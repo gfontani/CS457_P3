@@ -43,7 +43,7 @@ int udp_listen(int id){
 	myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	myaddr.sin_port = htons(udpPort); //set port
 
-	struct timeval timeout={5,0}; //set timeout for 2 seconds
+	struct timeval timeout={8,0}; //set timeout for 2 seconds
 	/* set receive UDP message timeout */
 	setsockopt(fd,SOL_SOCKET,SO_RCVTIMEO,(char*)&timeout,sizeof(struct timeval));
 	
@@ -205,6 +205,7 @@ void collectMessagesToSendInfo(int tcpSocket, int udpSocket, int id, ofstream& f
 	//loop while data isn't -1
 	while(true){
 		packet* to_recv = new packet();
+		bzero(to_recv->data, DATA_SIZE);
 		recv_udp_msg(udpSocket, to_recv);
 		printf("messages router #%d received %s\n", id, to_recv->data);
 		if(0 == strcmp(to_recv->data, "-1")){

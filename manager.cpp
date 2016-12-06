@@ -8,6 +8,7 @@
 vector<vector<int> > routerAndPorts;
 int managerTcpSock;
 
+
 //print error message
 void error(char const * msg)
 {
