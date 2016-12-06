@@ -20,12 +20,16 @@ void error(char const * msg)
 //copied from: http://stackoverflow.com/questions/997946/how-to-get-current-time-and-date-in-c
 // Get current date/time, format is YYYY-MM-DD.HH:mm:ss
 string currentDateTime() {
-    time_t     now = time(0);
-    struct tm  tstruct;
-    char       buf[80];
-    tstruct = *localtime(&now);
-    strftime(buf, sizeof(buf), "%Y-%m-%d.%X", &tstruct);
-    return buf;
+	timeval curTime;
+	gettimeofday(&curTime, NULL);
+	int milli = curTime.tv_usec / 1000;
+
+	char buffer [80];
+	strftime(buffer, 80, "%H:%M:%S", localtime(&curTime.tv_sec));
+
+	char currentTime[88] = "";
+	sprintf(currentTime, "%s:%d", buffer, milli);
+	return currentTime;
 }
 
 void send_msg(int sock, packet* to_send){
@@ -184,7 +188,7 @@ int server_accept(int sock){
  //method to create all of the routers
  //fork to create all of the routers
  //in each child process call the router method from router
- void createRouters(){
+ void createRouters(ofstream& fileStream){
 	int pid=1;//begin as parent process
 	//Create all the routers by forking new processes
 	//loop
@@ -200,7 +204,7 @@ int server_accept(int sock){
 			packet tempPacket;
 			recv_msg(tempRouterSock, &tempPacket);
 			
-			printf("manager has recvd msg: %s\n", tempPacket.data);
+			fileStream<<"Time: "<<currentDateTime()<<"manager has recvd msg: "<<tempPacket.data<<"\n";
 			addUdpFromRouterMessage(tempPacket.data, i);
 
 			//for debugging only, will need to keep open eventually
@@ -221,19 +225,19 @@ int server_accept(int sock){
  }
  
  //send neighbor, neighbor's udp port, and the weight to router
- void sendInfoToRouter(string router, string neighbor, string weight){
+ void sendInfoToRouter(string router, string neighbor, string weight, ofstream& fileStream){
 	int neighborUdp = getRouterUdp(atoi(neighbor.c_str()));
 	packet to_send;
 	sprintf(to_send.data, "%s,%d,%s", neighbor.c_str(), neighborUdp, weight.c_str());
 	int socket = getRouterTcp(atoi(router.c_str()));
 	send_msg(socket, &to_send);
-	printf("Manager sent to %s: %s\n", router.c_str(), to_send.data);
+	fileStream<<"Time: "<<currentDateTime()<<" Manager sent to "<<router<<": "<<to_send.data<<"\n";
         
  }
  
  //GABBY
  //send the router neighbor information to each router, line by line
-  void sendNeighborInformation(ifstream& fileptr){
+  void sendNeighborInformation(ifstream& fileptr, ofstream& fileStream){
 	 if(fileptr.is_open()){
 		//Reads neighbors from the file, sending info line by line to each router
 		string line = "";
@@ -244,8 +248,8 @@ int server_accept(int sock){
 				error("the format of the input file is wrong for indicating neighbors");
 			} 			
 			//Send Neighbor information (neighbor id, link cost, UDP port number)
-			sendInfoToRouter(routerInfo[0], routerInfo[1], routerInfo[2]);
-			sendInfoToRouter(routerInfo[1], routerInfo[0], routerInfo[2]);
+			sendInfoToRouter(routerInfo[0], routerInfo[1], routerInfo[2], fileStream);
+			sendInfoToRouter(routerInfo[1], routerInfo[0], routerInfo[2], fileStream);
 		} 
 		//Manager sends a “hey go ahead and start the link state algorithm” message to all of the routers
 		//send -1 to all routers
@@ -254,7 +258,7 @@ int server_accept(int sock){
 			packet to_send;
 			sprintf(to_send.data, "-1");
 			send_msg(socket, &to_send);
-			printf("Manager sent to %d: %s\n", i, to_send.data);
+			fileStream<<"Time: "<<currentDateTime()<<" Manager sent to "<<i<<": "<<to_send.data<<"\n";
 		}
 	 }
 	 else{
@@ -331,20 +335,20 @@ int main(int argc, char* argv[]){
 	//read first number in file
 	string line = "";
 	getline(fileptr, line);
-        totalRouterNum = atoi(line.c_str()); //hardcoded for debugging
+    totalRouterNum = atoi(line.c_str()); //hardcoded for debugging
 	
 	makeAllTables();
 
 	//setup TCP server
 	int startingPort = 3360;
 	managerTcpSock = server_bind_listen(startingPort);
-	printf("manager listening on port: %d\n", managerTcpPort);
+	fileStream<<"Time: "<<currentDateTime()<<" Manager listening on port: "<<managerTcpPort<<"\n";
 	
 	//make all of the routers
-	createRouters();
+	createRouters(fileStream);
 	printRouterTable();
 	//send neighbor information
-	sendNeighborInformation(fileptr);
+	sendNeighborInformation(fileptr, fileStream);
 
 	//maybe sleep to give routers time to figure out life?
 	
