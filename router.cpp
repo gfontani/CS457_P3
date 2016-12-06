@@ -201,39 +201,6 @@ int getNextHop(int destRouter){
 //receive message
 //forward message if not end router
 //messages are in the format: from,to,message
-void receiveAndForwardMessages(int id, int udpSocket, ofstream& fileStream){
-	//receive and parse the message
-	packet to_recv;
-	recv_udp_msg(udpSocket, &to_recv);
-	vector<string> messageInfo;
-	boost::split(messageInfo, to_recv.data, boost::is_any_of(","));
-	int from = atoi(messageInfo[0].c_str());
-	int to = atoi(messageInfo[1].c_str());
-	string message = messageInfo[2];
-	fileStream<<"Time: "<<currentDateTime()<<" Received message \""<<message<<"\" from router "<<from<<"\n";
-	//check destination
-	if(to == id){
-		//I am the destination
-		//write final message to file
-		
-		fileStream<<"Time: "<<currentDateTime()<<" I am the last router, will not forward message.\n"; 
-	}
-	else{
-		//I am not the destination
-		//forward packet and write message
-		int nextHop = getNextHop(to);
-		int nextHopUdp = myNeighborsPorts[nextHop];
-		send_udp_msg(udpSocket, nextHopUdp, &to_recv);
-		fileStream<<"Time: "<<currentDateTime()<<" Forwarding to router "<<nextHop<<"\n"; 
-	}
-}
-
-/* listens to manager and collects what routers it needs to send
- * msgs too.  Fills the routersToSendMessagesTo vector.
- * vector holds only what routers, this router needs to send msgs too.
- * ie if vector holds 2,4,5 then this vector sends messages to routers 
- * 2 then 4 then 5.
- */
 void collectMessagesToSendInfo(int tcpSocket, int udpSocket, int id, ofstream& fileStream){
 	//loop while data isn't -1
 	while(true){
@@ -249,7 +216,12 @@ void collectMessagesToSendInfo(int tcpSocket, int udpSocket, int id, ofstream& f
 		int from = atoi(messageInfo[0].c_str());
 		int to = atoi(messageInfo[1].c_str());
 		string message = messageInfo[2];
-		fileStream<<"Time: "<<currentDateTime()<<" Received message \""<<message<<"\" from router "<<from<<"\n";
+		if(-1 == from){
+			fileStream<<"Time: "<<currentDateTime()<<" Received message \""<<message<<"\" from manager\n";
+		}
+		else{
+			fileStream<<"Time: "<<currentDateTime()<<" Received message \""<<message<<"\" from router "<<from<<"\n";
+		}
 		//check destination
 		if(to == id){
 			//I am the destination
@@ -261,30 +233,13 @@ void collectMessagesToSendInfo(int tcpSocket, int udpSocket, int id, ofstream& f
 			//forward packet and write message
 			int nextHop = getNextHop(to);
 			int nextHopUdp = myNeighborsPorts[nextHop];
+			sprintf(to_recv->data, "%d,%d,%s", id, to, message.c_str());
 			send_udp_msg(udpSocket, nextHopUdp, to_recv);
 			fileStream<<"Time: "<<currentDateTime()<<" Forwarding to router "<<nextHop<<"\n"; 
 		}
 		
-		delete(to_recv);
-		/*vector<string> messageInfo;
-		boost::split(messageInfo, to_recv.data, boost::is_any_of(","));
-                int fromRouter = atoi(messageInfo[0].c_str());
-                int toRouter = atoi(messageInfo[1].c_str());
-                printf("router: from %d to %d\n", fromRouter, toRouter);
-                //send udp mesg to next router. port has to be next hop.
-                
-                
-                int hop_port = getNextHop(toRouter);
-                
-                printf("sending udp from %d to %d port %d\n", id, toRouter, hop_port);
-                send_udp_msg(udpSocket, hop_port, &to_recv); //sending on to next router
-                
-                routersToSendMessegesTo.push_back(toRouter); //add data to messages to send vector
-               // packet tempPacket;
-               // sprintf(tempPacket.data, "hello from router #%d, thanks for the data %d", id, udpPort);
-                
-        */  
-        }
+		delete(to_recv); 
+	}
 }
 
 void writeRoutingTableToFile(ofstream& myStream){

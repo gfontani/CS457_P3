@@ -283,7 +283,7 @@ int server_accept(int sock){
        printf("Manager: intial router port %d", initialRouterPort);
        printf("from*** %s to %s\n", fromRouter.c_str(), toRouter.c_str());
        packet router_msg;
-       sprintf(router_msg.data, "%s,%s,%s", fromRouter.c_str(), toRouter.c_str(), "Are we there yet?");
+       sprintf(router_msg.data, "-1,%s,%s", toRouter.c_str(), line.c_str());
        
        printf("sending mesg packet[%s] to %s \n", router_msg.data, fromRouter.c_str());
        
