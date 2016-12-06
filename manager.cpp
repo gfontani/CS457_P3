@@ -327,20 +327,44 @@ void closeAllSockets(){
 	}
 	
 }
+
+void usage(){
+  cout<<"Usage: ./manager <filename> :  please add a file describing topology."<<endl;
+  cout<<"manager program can only handle 1-10 routers."<<endl;
+  printf("bad file, exiting manager.\n");
+	exit(0);
+}
  
 int main(int argc, char* argv[]){
 		//open ofstream to use for debugging and final stuff
 	ofstream fileStream;
 	fileStream.open("manager.out");
-	
+	//ifstream fileptr;
+        string fileName = "";
 	//open file and start reading it
 	//leave the file open!!!
-	ifstream fileptr("exampleFile.txt");
+        if(argc < 1){
+          cout<<"less then 1"<<endl;
+          usage();//error check
+        }
+        
+         fileName = argv[1];
+         ifstream fileptr(fileName);
+     
 	
 	//read first number in file
+         
+        if (fileptr.is_open()){
 	string line = "";
 	getline(fileptr, line);
-    totalRouterNum = atoi(line.c_str()); //hardcoded for debugging
+        cout<<"line "<<line<<endl;
+        totalRouterNum = atoi(line.c_str()); 
+        cout<<"totalRouterNum "<<totalRouterNum<<endl;
+        if (totalRouterNum < 1 || totalRouterNum > 10){ //error check
+          cout<<"num to big or too small"<<endl;
+          usage();
+        }
+        
 	
 	makeAllTables();
 
@@ -369,6 +393,7 @@ int main(int argc, char* argv[]){
 	cout<<"calling send Messages"<<endl;
         sleep(5);
 	sendMessages(fileptr);
+        } //skips this if file doesn't open.
 	
 	//Kill remaining child processes
 	
