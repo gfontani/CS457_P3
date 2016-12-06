@@ -269,7 +269,7 @@ int server_accept(int sock){
 void sendMessages(ifstream& fileptr, ofstream& managerFileStream){
 	if(fileptr.is_open()){
 		string line = "";
-		int udpSocket = udp_listen(0);
+		int udpSocket = udp_listen(-1);
 		//reads the second part of the file.
 		while(getline(fileptr, line) && 0 != line.compare("-1")){
 			vector<string> fromTo;
@@ -291,7 +291,7 @@ void sendMessages(ifstream& fileptr, ofstream& managerFileStream){
 		}
 
 		for(int i = 0; i < totalRouterNum; i++){
-			sleep(1);
+			//sleep(1);
 			int nextRouterPort = routerAndPorts[i][0];
 
 			packet to_send;
@@ -379,6 +379,7 @@ int main(int argc, char* argv[]){
 			managerFileStream<<"Time: "<<currentDateTime()<<"Manager received "<<temp.data<<" from "<<i<<"\n";
 		}
 		managerFileStream<<"Time: "<<currentDateTime()<<" Routers finished link state algorithm\n\n";
+
 		//printf("manager finished waiting information\n");
 
 		//Manager sends messages to all routers according to file

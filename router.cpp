@@ -33,7 +33,13 @@ int client_connect(const char* addr, int portno){
 
 int udp_listen(int id){
 	int fd;
-	udpPort = managerTcpPort + id;
+
+	if(id<0){
+		udpPort = 0;
+	}
+	else{
+		udpPort = managerTcpPort + id;
+	}
 	if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		perror("cannot create socket");
 		return 0;
@@ -44,7 +50,7 @@ int udp_listen(int id){
 	myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
 	myaddr.sin_port = htons(udpPort); //set port
 
-	struct timeval timeout={8,0}; //set timeout for 2 seconds
+	struct timeval timeout={totalRouterNum+totalRouterNum/2,0}; //set timeout for x seconds
 	/* set receive UDP message timeout */
 	setsockopt(fd,SOL_SOCKET,SO_RCVTIMEO,(char*)&timeout,sizeof(struct timeval));
 	
@@ -97,7 +103,7 @@ bool allTrue(vector<bool> received){
 }
 
 void sendLsp(string lsp, int id, int receivedFrom){
-	int udpSocket = udp_listen(id);
+	int udpSocket = udp_listen(-1);
 	packet to_send;
 	bzero(to_send.data, DATA_SIZE);
 	sprintf(to_send.data, lsp.c_str());
@@ -323,17 +329,8 @@ void router(int id){
 	
 	//Routers write their routing tables to their file
 	writeRoutingTableToFile(fileStream);
-    sleep(3);
-    collectMessagesToSendInfo(tcpSocket, udpSocket,  id);
-       
-	//wait for go ahead from manager: this will be the -1 received after the loop 
-	//so don't wait for go ahead from master, just start after loop is done
-	
-	//Routers send message to manager when done
-
-	//Routers receive messages, look up info in routing table, and pass on message
-	
-	//When routers send and receive they write to their .out file
+	collectMessagesToSendInfo(tcpSocket, udpSocket,  id);
+      
 	
 	fileStream.close();
 	//exit router gracefully
