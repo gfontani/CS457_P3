@@ -122,7 +122,7 @@ int ospf(int myRouterNum){
 		inspect(index, &confirmed_list, &tentative_list, myRouterNum);
 	}
 
-	printf("router %d has reached end of ospf\n",myRouterNum);
+	//printf("router %d has reached end of ospf\n",myRouterNum);
 	routingTable = confirmed_list;
 /*
 	cout<<"Routing table: \ndest\tweight\tnextHop\n";

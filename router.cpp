@@ -8,9 +8,6 @@ int udpPort;
 int client_connect(const char* addr, int portno){
 	struct sockaddr_in serv_addr;
 	struct hostent *server;
-
-	//printf("Connecting to server... ");
-
 	int sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock < 0) error("ERROR opening socket");
 
@@ -25,8 +22,6 @@ int client_connect(const char* addr, int portno){
 	serv_addr.sin_port = htons(portno);
 	if (connect(sock,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
 		error("ERROR connecting");
-
-	//printf("Connected to manager!\n");
 	return sock;
 } 
 
@@ -66,7 +61,7 @@ string collectNeighborInfo(int tcpSocket, int id, ofstream& fileStream){
 	packet to_recv;
 	bzero(to_recv.data, DATA_SIZE);
 	recv_msg(tcpSocket, &to_recv);
-	fileStream<<"Time: "<<currentDateTime()<<" Router #"<<id<<" received from manager: "<<to_recv.data<<"\n";
+	fileStream<<"Time: "<<currentDateTime()<<" Received message from manager: "<<to_recv.data<<"\n";
 	while(0 != strcmp(to_recv.data, "-1")){
 		vector<string> neighborInfo;
 		boost::split(neighborInfo, to_recv.data, boost::is_any_of(","));
@@ -80,7 +75,7 @@ string collectNeighborInfo(int tcpSocket, int id, ofstream& fileStream){
 		//add info to lspMessage
 		lspMessage = lspMessage + neighborInfo[0] + "," + neighborInfo[2] + ",";
 		recv_msg(tcpSocket, &to_recv);
-		fileStream<<"Time: "<<currentDateTime()<<" Router #"<<id<<" received from manager: "<<to_recv.data<<"\n";
+		fileStream<<"Time: "<<currentDateTime()<<" Received message from manager: "<<to_recv.data<<"\n";
 	}
 	return lspMessage;
 }
@@ -104,7 +99,7 @@ void sendLsp(string lsp, int id, int receivedFrom, ofstream& fileStream){
 		if((myNeighborsPorts[i] != -1) && ((int)i != receivedFrom)){
 			int port = myNeighborsPorts[i];
 			send_udp_msg(udpSocket, port, &to_send);
-			fileStream<<"Time: "<<currentDateTime()<<" Router "<<id<<" sent to router "<<i<<" on udp: "<<to_send.data<<"\n";
+			fileStream<<"Time: "<<currentDateTime()<<" Sent message to router "<<i<<" on udp: "<<to_send.data<<"\n";
 		}
 	}
 	close(udpSocket);	
@@ -124,7 +119,7 @@ void receiveLsps(int udpSocket, int id, ofstream& fileStream){
 		vector<string> neighborInfo;
 		boost::split(neighborInfo, to_recv.data, boost::is_any_of(","));
 		int from = atoi(neighborInfo[0].c_str());
-		fileStream<<"Time: "<<currentDateTime()<<" Router "<<id<<" received on udp: "<<to_recv.data<<" from : "<<from<<"\n";
+		fileStream<<"Time: "<<currentDateTime()<<" Received on udp: "<<to_recv.data<<" from : "<<from<<"\n";
 		if(false == receivedLsp[from]){
 			//fork
 			int pid = fork();
@@ -211,8 +206,9 @@ void collectMessagesToSendInfo(int tcpSocket, int udpSocket, int id, ofstream& f
 		packet* to_recv = new packet();
 		bzero(to_recv->data, DATA_SIZE);
 		recv_udp_msg(udpSocket, to_recv);
-		printf("messages router #%d received %s\n", id, to_recv->data);
+		//printf("Received %s\n", id, to_recv->data);
 		if(0 == strcmp(to_recv->data, "-1")){
+			fileStream<<"Time: "<<currentDateTime()<<" Received on udp: "<<to_recv->data<<"\n";
 			break;
 		}
 		//receive and parse the message
