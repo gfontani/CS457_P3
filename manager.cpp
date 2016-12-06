@@ -7,7 +7,6 @@
 //and 3 columns: <routerNumber> | <UDP port> | <tcpinformation>
 vector<vector<int> > routerAndPorts;
 int managerTcpSock;
-ofstream managerFileStream;
 
 //print error message
 void error(char const * msg)
@@ -188,32 +187,27 @@ int server_accept(int sock){
  //method to create all of the routers
  //fork to create all of the routers
  //in each child process call the router method from router
- void createRouters(){
+ void createRouters(ofstream& managerFileStream){
 	int pid=1;//begin as parent process
 	//Create all the routers by forking new processes
 	//loop
 	for(int i=0;i<totalRouterNum; i++){
 		//fork
 		pid = fork();
-
 		//if parent
 		if(pid==0){
+			managerFileStream<<"Time: "<<currentDateTime()<<" Forked to create router "<<i<<"\n";
 			//wait for connection and reply of each router after creation
 			int tempRouterSock = server_accept(managerTcpSock);
 			routerAndPorts[i][1] = tempRouterSock;
 			packet tempPacket;
 			bzero(tempPacket.data, DATA_SIZE);
 			recv_msg(tempRouterSock, &tempPacket);
-			
-			managerFileStream<<"Time: "<<currentDateTime()<<"manager has recvd msg: "<<tempPacket.data<<"\n";
+			managerFileStream<<"Time: "<<currentDateTime()<<" Received message: "<<tempPacket.data<<"\n";
 			addUdpFromRouterMessage(tempPacket.data, i);
-
-			//for debugging only, will need to keep open eventually
-			//close(tempRouterSock);
 		}
 		else if(pid>0){			
 		//if child
-			//keep track of child id's?
 			//call the router method from router passing router id
 			router(i);
 			exit(0);
@@ -226,20 +220,20 @@ int server_accept(int sock){
  }
  
  //send neighbor, neighbor's udp port, and the weight to router
- void sendInfoToRouter(string router, string neighbor, string weight){
+ void sendInfoToRouter(string router, string neighbor, string weight, ofstream& managerFileStream){
 	int neighborUdp = getRouterUdp(atoi(neighbor.c_str()));
 	packet to_send;
 	bzero(to_send.data, DATA_SIZE);
 	sprintf(to_send.data, "%s,%d,%s", neighbor.c_str(), neighborUdp, weight.c_str());
 	int socket = getRouterTcp(atoi(router.c_str()));
 	send_msg(socket, &to_send);
-	managerFileStream<<"Time: "<<currentDateTime()<<" Manager sent to "<<router<<": "<<to_send.data<<"\n";
+	managerFileStream<<"Time: "<<currentDateTime()<<" Sent message to "<<router<<": "<<to_send.data<<"\n";
         
  }
  
  //GABBY
  //send the router neighbor information to each router, line by line
-  void sendNeighborInformation(ifstream& fileptr){
+  void sendNeighborInformation(ifstream& fileptr, ofstream& managerFileStream){
 	 if(fileptr.is_open()){
 		//Reads neighbors from the file, sending info line by line to each router
 		string line = "";
@@ -250,8 +244,8 @@ int server_accept(int sock){
 				error("the format of the input file is wrong for indicating neighbors");
 			} 			
 			//Send Neighbor information (neighbor id, link cost, UDP port number)
-			sendInfoToRouter(routerInfo[0], routerInfo[1], routerInfo[2]);
-			sendInfoToRouter(routerInfo[1], routerInfo[0], routerInfo[2]);
+			sendInfoToRouter(routerInfo[0], routerInfo[1], routerInfo[2], managerFileStream);
+			sendInfoToRouter(routerInfo[1], routerInfo[0], routerInfo[2], managerFileStream);
 		} 
 		//Manager sends a “hey go ahead and start the link state algorithm” message to all of the routers
 		//send -1 to all routers
@@ -261,7 +255,7 @@ int server_accept(int sock){
 			bzero(to_send.data, DATA_SIZE);
 			sprintf(to_send.data, "-1");
 			send_msg(socket, &to_send);
-			managerFileStream<<"Time: "<<currentDateTime()<<" Manager sent to "<<i<<": "<<to_send.data<<"\n";
+			managerFileStream<<"Time: "<<currentDateTime()<<" Sent message to "<<i<<": "<<to_send.data<<"\n";
 		}
 	 }
 	 else{
@@ -272,53 +266,47 @@ int server_accept(int sock){
  //BEN
 //read the second half of the file and notify routers
 //what other routers they need to send msgs too.
- void sendMessages(ifstream& fileptr){
-   if(fileptr.is_open()){
-     string line = "";
-     int udpSocket = udp_listen(0);
-     //reads the second part of the file.
-     while(getline(fileptr, line) && 0 != line.compare("-1")){
-      
-       vector<string> fromTo;
-       boost::split(fromTo, line, boost::is_any_of(" "));
-       string fromRouter = fromTo[0];
-       string toRouter = fromTo[1];
-       int initialRouterPort = routerAndPorts[stoi(fromRouter)][0];
-       printf("Manager: intial router port %d", initialRouterPort);
-       printf("from*** %s to %s\n", fromRouter.c_str(), toRouter.c_str());
-       packet router_msg;
-       bzero(router_msg.data, DATA_SIZE);
-       sprintf(router_msg.data, "-1,%s,%s", toRouter.c_str(), line.c_str());
-       
-       printf("sending mesg packet[%s] to %s \n", router_msg.data, fromRouter.c_str());
-       
-       send_udp_msg(udpSocket, initialRouterPort, &router_msg);
-       //cout<<"receiving message"<<endl;
-      sleep(2);
-       
-     }
-     
-          for(int i = 0; i < totalRouterNum; i++){
-                        sleep(1);
-                        int nextRouterPort = routerAndPorts[i][0];
-			 
+void sendMessages(ifstream& fileptr, ofstream& managerFileStream){
+	if(fileptr.is_open()){
+		string line = "";
+		int udpSocket = udp_listen(0);
+		//reads the second part of the file.
+		while(getline(fileptr, line) && 0 != line.compare("-1")){
+			vector<string> fromTo;
+			boost::split(fromTo, line, boost::is_any_of(" "));
+			string fromRouter = fromTo[0];
+			string toRouter = fromTo[1];
+			int initialRouterPort = routerAndPorts[stoi(fromRouter)][0];
+			//printf("Manager: intial router port %d", initialRouterPort);
+			//printf("from*** %s to %s\n", fromRouter.c_str(), toRouter.c_str());
+			packet router_msg;
+			bzero(router_msg.data, DATA_SIZE);
+			sprintf(router_msg.data, "-1,%s,%s", toRouter.c_str(), line.c_str());
+			//printf("sending mesg packet[%s] to %s \n", router_msg.data, fromRouter.c_str());
+			send_udp_msg(udpSocket, initialRouterPort, &router_msg);
+			managerFileStream<<"Time: "<<currentDateTime()<<" Sent message to "<<fromRouter<<": "<<router_msg.data<<"\n";
+			//cout<<"receiving message"<<endl;
+			//sleeps between sending messages
+			sleep(2);
+		}
+
+		for(int i = 0; i < totalRouterNum; i++){
+			sleep(1);
+			int nextRouterPort = routerAndPorts[i][0];
+
 			packet to_send;
 			bzero(to_send.data, DATA_SIZE);
 			sprintf(to_send.data, "-1");
-                        
+
 			send_udp_msg(udpSocket, nextRouterPort, &to_send);
-			printf("sending end file to %d: %s\n", i, to_send.data);
-                       
+			//printf("sending end file to %d: %s\n", i, to_send.data);
+			managerFileStream<<"Time: "<<currentDateTime()<<" sending end file to "<<i<<": "<<to_send.data<<"\n";
 		}
-            
-    }
-	 else{
-		 error("fileptr is not open in sendNeighborInformation, exiting forecefully");
-	 }
-		
-		//sleeps between sending messages
-	 
- }
+	}
+	else{
+		error("fileptr is not open in sendNeighborInformation, exiting forecefully");
+	}	 
+}
 
 void closeAllSockets(){
 	for(int i = 0; i < totalRouterNum; i++){
@@ -336,68 +324,73 @@ void usage(){
 }
  
 int main(int argc, char* argv[]){
-		//open ofstream to use for debugging and final stuff
+	//open ofstream to use for debugging and final stuff
+	ofstream managerFileStream;
 	managerFileStream.open("manager.out");
-	//ifstream fileptr;
-        string fileName = "";
+
 	//open file and start reading it
 	//leave the file open!!!
-        if(argc < 1){
-          cout<<"less then 1"<<endl;
-          usage();//error check
-        }
-        
-         fileName = argv[1];
-         ifstream fileptr(fileName);
-     
-	
-	//read first number in file
-         
-        if (fileptr.is_open()){
-	string line = "";
-	getline(fileptr, line);
-        cout<<"line "<<line<<endl;
-        totalRouterNum = atoi(line.c_str()); 
-        cout<<"totalRouterNum "<<totalRouterNum<<endl;
-        if (totalRouterNum < 1 || totalRouterNum > 10){ //error check
-          cout<<"num to big or too small"<<endl;
-          usage();
-        }
-        
-	
-	makeAllTables();
-
-	//setup TCP server
-	int startingPort = 3360;
-	managerTcpSock = server_bind_listen(startingPort);
-	managerFileStream<<"Time: "<<currentDateTime()<<" Manager listening on port: "<<managerTcpPort<<"\n";
-	
-	//make all of the routers
-	createRouters();
-	printRouterTable();
-	//send neighbor information
-	sendNeighborInformation(fileptr);
-	printf("manager sent neighbor information\n");
-	//Manager waits for messages from all routers saying they are done with link state algorithm
-	for(int i = 0; i < totalRouterNum; i++){
-		int socket = routerAndPorts[i][1];
-		packet temp;
-		bzero(temp.data, DATA_SIZE);
-		recv_msg(socket, &temp);
-		managerFileStream<<"Time: "<<currentDateTime()<<"Manager received "<<temp.data<<"\n";
+	if(argc < 2){
+		cout<<"less then 1"<<endl;
+		usage();//error check
 	}
-	printf("manager finished waiting information\n");
+	string fileName = "";
+	fileName = argv[1];
+	ifstream fileptr(fileName);
 
-	//Manager sends messages to all routers according to file
-	cout<<"calling send Messages"<<endl;
-        sleep(5);
-	sendMessages(fileptr);
-        } //skips this if file doesn't open.
-        else{
-			error("bad file name");
+	//read first number in file
+	if (fileptr.is_open()){
+		string line = "";
+		getline(fileptr, line);
+		//cout<<"line "<<line<<endl;
+		totalRouterNum = atoi(line.c_str()); 
+		//cout<<"totalRouterNum "<<totalRouterNum<<endl;
+		if (totalRouterNum < 1 || totalRouterNum > 10){ //error check
+			cout<<"num to big or too small"<<endl;
+			usage();
 		}
-	
-	
+		
+		//initialize all tables to be full of -1
+		makeAllTables();
+
+		//setup TCP server
+		int startingPort = 3360;
+		managerTcpSock = server_bind_listen(startingPort);
+		managerFileStream<<"Time: "<<currentDateTime()<<" Listening on port: "<<managerTcpPort<<"\n\n";
+
+		//make all of the routers
+		managerFileStream<<"Time: "<<currentDateTime()<<" Start creating routers\n";
+		createRouters(managerFileStream);
+		managerFileStream<<"Time: "<<currentDateTime()<<" Finish creating routers\n\n";
+		
+		//send neighbor information
+		managerFileStream<<"Time: "<<currentDateTime()<<" Start sending neighbor information\n";
+		sendNeighborInformation(fileptr, managerFileStream);
+		managerFileStream<<"Time: "<<currentDateTime()<<" Finish sending neighbor information\n\n";
+		//printf("manager sent neighbor information\n");
+		
+		//Manager waits for messages from all routers saying they are done with link state algorithm
+		managerFileStream<<"Time: "<<currentDateTime()<<" Waiting for routers to finish link state algorithm...\n";
+		for(int i = 0; i < totalRouterNum; i++){
+			int socket = routerAndPorts[i][1];
+			packet temp;
+			bzero(temp.data, DATA_SIZE);
+			recv_msg(socket, &temp);
+			managerFileStream<<"Time: "<<currentDateTime()<<"Manager received "<<temp.data<<" from "<<i<<"\n";
+		}
+		managerFileStream<<"Time: "<<currentDateTime()<<" Routers finished link state algorithm\n\n";
+		//printf("manager finished waiting information\n");
+
+		//Manager sends messages to all routers according to file
+		//cout<<"calling send Messages"<<endl;
+		managerFileStream<<"Time: "<<currentDateTime()<<" Start sending messages to routers\n";
+		sendMessages(fileptr, managerFileStream);
+		managerFileStream<<"Time: "<<currentDateTime()<<" Finish sending messages to routers\n\n";
+		managerFileStream.close();
+	} //skips this if file doesn't open.
+	else{
+		error("bad file name");
+	}
 
 	close(managerTcpSock);
 	closeAllSockets();

@@ -250,7 +250,7 @@ void collectMessagesToSendInfo(int tcpSocket, int udpSocket, int id){
 
 void writeRoutingTableToFile(ofstream& myStream){
 	myStream<<"Time: "<<currentDateTime()<<"\n";
-	myStream<<"Routing table: \ndest\tweight\tnextHop\n";
+	myStream<<"Forwarding table: \ndest\tweight\tnextHop\n";
 	for(unsigned int i = 0; i < routingTable.size(); i++){
 		for(unsigned int j = 0; j < routingTable[i].size(); j++){
 			myStream<<routingTable[i][j]<<"\t";
