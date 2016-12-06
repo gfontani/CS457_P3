@@ -91,25 +91,33 @@ void updateTables(char* message){
  * ie if vector holds 2,4,5 then this vector sends messages to routers 
  * 2 then 4 then 5.
  */
-string collectMessagesToSendInfo(int tcpSocket, int id){
+string collectMessagesToSendInfo(int tcpSocket, int udpSocket, int id){
 	//loop while data isn't -1
-	//receive neighbor information from tcp connection with manager
+	
 	string messages = "";
 	packet to_recv;
 	recv_msg(tcpSocket, &to_recv);
 	printf("messages router #%d received %s\n", id, to_recv.data);
 	while(0 != strcmp(to_recv.data, "-1")){
+          
 		vector<string> messageInfo;
 		boost::split(messageInfo, to_recv.data, boost::is_any_of(","));
                 int fromRouter = atoi(messageInfo[0].c_str());
                 int toRouter = atoi(messageInfo[1].c_str());
                 printf("router: from %d to %d\n", fromRouter, toRouter);
-                routersToSendMessegesTo.push_back(toRouter);
+                //send udp mesg to next router. port has to be next hop.
+                
+                int hop_port = myNeighborsPorts[toRouter]; //need to change this to get next hop.
+                printf("sending udp from %d to %d port %d\n", id, toRouter, hop_port);
+                send_udp_msg(udpSocket, hop_port, &to_recv); //sending on to next router
+                
+                routersToSendMessegesTo.push_back(toRouter); //add data to messages to send vector
                 packet tempPacket;
                 sprintf(tempPacket.data, "hello from router #%d, thanks for the data %d", id, udpPort);
                 
                 send_msg(tcpSocket, &tempPacket);//send ack msg
 		recv_msg(tcpSocket, &to_recv);
+                sleep(2);
 		
 	}//Send mesg saying we are complete
 	packet tempPacket;
@@ -132,7 +140,7 @@ void exchangeISP(int udpSocket, int id){
 		printf("router %d received on udp: %s\n", id, to_recv.data);
 		
 	}
-	else if(pid>0){			
+	else if(pid>0){	
 		//if child
 		//wait x time (for other routers to be listening on udp)
 		sleep(3);
@@ -241,8 +249,10 @@ void router(int id){
     writeAllNeighborWeightsToFile(fileStream);
     writeMyNeighborsPortsToFile(fileStream);
     writeRoutingTableToFile(fileStream);
+    exchangeISP(udpSocket, id);
+    djikstrasAlgorithm(id);
     sleep(3);
-    cout<<collectMessagesToSendInfo(tcpSocket, id)<< id <<endl;
+    cout<<collectMessagesToSendInfo(tcpSocket, udpSocket,  id)<< id <<endl;
     
 
 
@@ -252,8 +262,7 @@ void router(int id){
 	//so don't wait for go ahead from master, just start after loop is done
 	
 	//Routers do link state algorithm to make the routing tables
-	exchangeISP(udpSocket, id);
-	djikstrasAlgorithm(id);
+	
 	
         
 	//Routers write their routing tables to their file
