@@ -324,6 +324,7 @@ void usage(){
 }
  
 int main(int argc, char* argv[]){
+	printf("Welcome to our routing program. Please wait up to 30 seconds for completion\n");
 	//open ofstream to use for debugging and final stuff
 	ofstream managerFileStream;
 	managerFileStream.open("manager.out");
@@ -360,11 +361,13 @@ int main(int argc, char* argv[]){
 
 		//make all of the routers
 		managerFileStream<<"Time: "<<currentDateTime()<<" Start creating routers\n";
+		printf("Manager is creating routers\n");
 		createRouters(managerFileStream);
 		managerFileStream<<"Time: "<<currentDateTime()<<" Finish creating routers\n\n";
 		
 		//send neighbor information
 		managerFileStream<<"Time: "<<currentDateTime()<<" Start sending neighbor information\n";
+		printf("Manager is sending neighbor information\n");
 		sendNeighborInformation(fileptr, managerFileStream);
 		managerFileStream<<"Time: "<<currentDateTime()<<" Finish sending neighbor information\n\n";
 		//printf("manager sent neighbor information\n");
@@ -380,10 +383,10 @@ int main(int argc, char* argv[]){
 		}
 		managerFileStream<<"Time: "<<currentDateTime()<<" Routers finished link state algorithm\n\n";
 
-		//printf("manager finished waiting information\n");
+		printf("Routers finished link state algorithm\n");
 
 		//Manager sends messages to all routers according to file
-		//cout<<"calling send Messages"<<endl;
+		printf("Sending messages\n");
 		managerFileStream<<"Time: "<<currentDateTime()<<" Start sending messages to routers\n";
 		sendMessages(fileptr, managerFileStream);
 		managerFileStream<<"Time: "<<currentDateTime()<<" Finish sending messages to routers\n\n";
