@@ -262,7 +262,7 @@ string collectMessagesToSendInfo(int tcpSocket, int udpSocket, int id){
 		recv_msg(tcpSocket, &to_recv);
                 sleep(2);
         }
-        return "";
+        return "toats me goats";
 }
 
 void writeRoutingTableToFile(ofstream& myStream){
