@@ -124,7 +124,7 @@ void receiveLsps(int udpSocket, int id, ofstream& fileStream){
 		recv_udp_msg(udpSocket, &to_recv);
 		vector<string> neighborInfo;
 		boost::split(neighborInfo, to_recv.data, boost::is_any_of(","));
-		int from = atoi(neighborInfo[0].c_str());
+		int from = atoi(neighborInfo[1].c_str());
 		fileStream<<"Time: "<<currentDateTime()<<" Received on udp: "<<to_recv.data<<" from : "<<from<<"\n";
 		if(false == receivedLsp[from]){
 			//fork
@@ -132,7 +132,7 @@ void receiveLsps(int udpSocket, int id, ofstream& fileStream){
 			if(pid==0){
 				//if parent
 				//store data
-				unsigned int counter = 1;
+				unsigned int counter = 2;
 				int neighbor = 0;
 				int weight = 0;
 				while(counter < neighborInfo.size()-1){
@@ -156,16 +156,6 @@ void receiveLsps(int udpSocket, int id, ofstream& fileStream){
 			}
 		}
 		
-	}
-	
-	while(true){
-		packet temp;
-		bzero(temp.data, DATA_SIZE);
-		int recvNum = recv_udp_msg(udpSocket, &temp);
-		if(recvNum < 0){
-			break;
-		}
-
 	}
 }
 
@@ -220,29 +210,31 @@ void collectMessagesToSendInfo(int tcpSocket, int udpSocket, int id, ofstream& f
 		//receive and parse the message
 		vector<string> messageInfo;
 		boost::split(messageInfo, to_recv->data, boost::is_any_of(","));
-		int from = atoi(messageInfo[0].c_str());
-		int to = atoi(messageInfo[1].c_str());
-		string message = messageInfo[2];
-		if(-1 == from){
-			fileStream<<"Time: "<<currentDateTime()<<" Received message \""<<message<<"\" from manager\n";
-		}
-		else{
-			fileStream<<"Time: "<<currentDateTime()<<" Received message \""<<message<<"\" from router "<<from<<"\n";
-		}
-		//check destination
-		if(to == id){
-			//I am the destination
-			//write final message to file
-			fileStream<<"Time: "<<currentDateTime()<<" I am the last router, will not forward message.\n"; 
-		}
-		else{
-			//I am not the destination
-			//forward packet and write message
-			int nextHop = getNextHop(to);
-			int nextHopUdp = myNeighborsPorts[nextHop];
-			sprintf(to_recv->data, "%d,%d,%s", id, to, message.c_str());
-			send_udp_msg(udpSocket, nextHopUdp, to_recv);
-			fileStream<<"Time: "<<currentDateTime()<<" Forwarding to router "<<nextHop<<"\n"; 
+		if(0 != strcmp(messageInfo[0].c_str(), "lsp")){
+			int from = atoi(messageInfo[0].c_str());
+			int to = atoi(messageInfo[1].c_str());
+			string message = messageInfo[2];
+			if(-1 == from){
+				fileStream<<"Time: "<<currentDateTime()<<" Received message \""<<message<<"\" from manager\n";
+			}
+			else{
+				fileStream<<"Time: "<<currentDateTime()<<" Received message \""<<message<<"\" from router "<<from<<"\n";
+			}
+			//check destination
+			if(to == id){
+				//I am the destination
+				//write final message to file
+				fileStream<<"Time: "<<currentDateTime()<<" I am the last router, will not forward message.\n"; 
+			}
+			else{
+				//I am not the destination
+				//forward packet and write message
+				int nextHop = getNextHop(to);
+				int nextHopUdp = myNeighborsPorts[nextHop];
+				sprintf(to_recv->data, "%d,%d,%s", id, to, message.c_str());
+				send_udp_msg(udpSocket, nextHopUdp, to_recv);
+				fileStream<<"Time: "<<currentDateTime()<<" Forwarding to router "<<nextHop<<"\n"; 
+			}
 		}
 		
 		delete(to_recv); 
@@ -299,7 +291,7 @@ void router(int id){
 	//open ofstream to use for debugging and final stuff
 	ofstream fileStream;
 	fileStream.open(filename);
-	fileStream<<"Time: "<<currentDateTime()<<" Hello! I am a new router with id"<<id<<"\n\n";
+	fileStream<<"Time: "<<currentDateTime()<<" Hello! I am a new router with id "<<id<<"\n\n";
 	//sets up udp socket
 	int udpSocket = udp_listen(id);
 	
@@ -317,7 +309,7 @@ void router(int id){
 	fileStream<<"Time: "<<currentDateTime()<<" Waiting for neighbor information from the manager...\n";
 	string lspMessage = collectNeighborInfo(tcpSocket, id, fileStream);
 	fileStream<<"Time: "<<currentDateTime()<<" Received neighbor information from the manager\n\n";
-	lspMessage = to_string(id) + "," + lspMessage;
+	lspMessage = "lsp," + to_string(id) + "," + lspMessage;
 	
 	//Routers do link state algorithm to make the routing tables
 	fileStream<<"Time: "<<currentDateTime()<<" Starting link state algorithm...\n";
