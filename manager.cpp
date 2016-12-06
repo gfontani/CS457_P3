@@ -89,7 +89,7 @@ int server_bind_listen(int portno){ //portno = port number
 		if (bind(sock, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) == 0)
 			break;
 		if(i==12)
-			error("ERROR on binding"); //could not bind to 13 consecutive ports
+			error("ERROR on server binding"); //could not bind to 13 consecutive ports
 		portno++;
 	}
 
@@ -268,37 +268,38 @@ int server_accept(int sock){
  void sendMessages(ifstream& fileptr){
    if(fileptr.is_open()){
      string line = "";
-     cout<<"totnum of routers = "<<totalRouterNum<<endl;
+     int udpSocket = udp_listen(0);
      //reads the second part of the file.
      while(getline(fileptr, line) && 0 != line.compare("-1")){
-       //sleep(5);
+      
        vector<string> fromTo;
        boost::split(fromTo, line, boost::is_any_of(" "));
        string fromRouter = fromTo[0];
        string toRouter = fromTo[1];
-       int socket = getRouterTcp(atoi(fromRouter.c_str()));
+       int initialRouterPort = routerAndPorts[stoi(fromRouter)][0];
+       printf("Manager: intial router port %d", initialRouterPort);
        printf("from*** %s to %s\n", fromRouter.c_str(), toRouter.c_str());
        packet router_msg;
        sprintf(router_msg.data, "%s,%s,%s", fromRouter.c_str(), toRouter.c_str(), "Are we there yet?");
        
        printf("sending mesg packet[%s] to %s \n", router_msg.data, fromRouter.c_str());
        
-       send_msg(socket, &router_msg);
+       send_udp_msg(udpSocket, initialRouterPort, &router_msg);
        //cout<<"receiving message"<<endl;
-       packet ack;
-       recv_msg(socket, &ack);
-       printf("message receieved %s\n", ack.data);
+      sleep(2);
        
      }
+     
           for(int i = 0; i < totalRouterNum; i++){
-			int socket = getRouterTcp(i);
+                        sleep(1);
+                        int nextRouterPort = routerAndPorts[i][0];
+			 
 			packet to_send;
 			sprintf(to_send.data, "-1");
-			send_msg(socket, &to_send);
+                        
+			send_udp_msg(udpSocket, nextRouterPort, &to_send);
 			printf("sending end file to %d: %s\n", i, to_send.data);
-                        packet ack;
-                        recv_msg(socket, &ack);
-                        printf("end file received  %s\n", ack.data);
+                       
 		}
             
     }
@@ -351,6 +352,7 @@ int main(int argc, char* argv[]){
 	
 	//Manager sends messages to all routers according to file
 	cout<<"calling send Messages"<<endl;
+        sleep(5);
 	sendMessages(fileptr);
 	
 	//Kill remaining child processes
