@@ -140,8 +140,19 @@ void receiveLsps(int udpSocket, int id, ofstream& fileStream){
 				allNeighborWeights[lspRouter][neighbor] = weight;
 			}
 			receivedLsp[lspRouter] = true;
-			//sendLSP to neighbors
-			to_recv.data[4] = '0' + id;
+			//sendLSP to neighbor
+			
+		bzero(to_recv.data, DATA_SIZE);
+		strcat(to_recv.data, neighborInfo[0].c_str());
+strcat(to_recv.data, ",");		
+strcat(to_recv.data, to_string(id).c_str());
+strcat(to_recv.data, ",");
+		int counter2 = 2;
+		while(counter2 < (int)neighborInfo.size()-1){
+			strcat(to_recv.data, neighborInfo[counter2].c_str());
+strcat(to_recv.data, ",");			
+counter2++;
+		}
 			sendLsp(to_recv.data, id, from, fileStream);
 		}
 		
