@@ -9,6 +9,8 @@ to run the program call $./manager <filename>
 
 The file for this program needs to be set up exactly like the example file in the instructions.  Meaning that the first line in the file is the number of routers in the network and the following lines hold the topology of the network.  A "-1" signifies the end of the topology description.  After the "-1" the file indicates what messages it wants sent around the network by listing the "from" "to" routers.  The end of message passing part of the file is indicated with a "-1". There cannot be any additional white space in the file, otherwise the program will fail.  Note that consecutive numbers on a line are separated by spaces, not tabs. 
 
+NOTE: The program will only work with up to 10 routers.  You cannot have more than 10 routers in the input file
+
 Example of the file format:
 3
 0 1 20
@@ -28,7 +30,7 @@ The program takes a few seconds to complete so there is some output printed to t
 Many messages are passed between the routers and manager in the course of the program. Most of the message formats are as follows:
  - Message sent to manager when router created: "hello from router #<router_id>, my udp port is <router_udp_port>"
  - Message from manager to tell routers of their neighbors: "<neighbor_id>,<neighbor_udp_port>,<neighbor_weight>"
- - Messages exchanged between routers to exchange LSPs: "lsp,<router_id>,<neighbor1_id>,<weight_to_neighbor1>,...,<neighborN_id>,<weight_to_neighborN>"
+ - Messages exchanged between routers to exchange LSPs: "lsp,<from_router_id>,<origin_router_id>,<neighbor1_id>,<weight_to_neighbor1>,...,<neighborN_id>,<weight_to_neighborN>"
  - Message from routers to manager to indicate completeion of link state algorithm: "<router_id> done!"
  - Messages forwarded between routers: "<from_router_id>,<to_router_id>,<message>"
  

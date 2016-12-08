@@ -125,60 +125,34 @@ void receiveLsps(int udpSocket, int id, ofstream& fileStream){
 		vector<string> neighborInfo;
 		boost::split(neighborInfo, to_recv.data, boost::is_any_of(","));
 		int from = atoi(neighborInfo[1].c_str());
+		int lspRouter = atoi(neighborInfo[2].c_str());
 		fileStream<<"Time: "<<currentDateTime()<<" Received on udp: "<<to_recv.data<<" from : "<<from<<"\n";
-		if(false == receivedLsp[from]){
-			//fork
-			//int pid = fork();
-			//if(pid==0){
-				//if parent
-				//store data
-				unsigned int counter = 2;
-				int neighbor = 0;
-				int weight = 0;
-				while(counter < neighborInfo.size()-1){
-					neighbor = atoi(neighborInfo[counter].c_str());
-					counter++;
-					weight = atoi(neighborInfo[counter].c_str());
-					counter++;
-					allNeighborWeights[from][neighbor] = weight;
-				}
-				receivedLsp[from] = true;
-			//}
-			//else if(pid>0){
-				//if child
-				//sendLSP to neighbors
-				sendLsp(to_recv.data, id, from, fileStream);
-				//exit(0);
-			//}
-			//else{
-			//failed to fork
-				//error("failed to fork, exiting forcefully?");
-			//}
+		if(false == receivedLsp[lspRouter]){
+			//store data
+			unsigned int counter = 3;
+			int neighbor = 0;
+			int weight = 0;
+			while(counter < neighborInfo.size()-1){
+				neighbor = atoi(neighborInfo[counter].c_str());
+				counter++;
+				weight = atoi(neighborInfo[counter].c_str());
+				counter++;
+				allNeighborWeights[lspRouter][neighbor] = weight;
+			}
+			receivedLsp[lspRouter] = true;
+			//sendLSP to neighbors
+			to_recv.data[4] = '0' + id;
+			sendLsp(to_recv.data, id, from, fileStream);
 		}
 		
 	}
 }
 
 void exchangeLSP(int udpSocket, int id, string lsp, ofstream& fileStream){
-	//fork
-	//int pid = fork();
-	//if(pid==0){
-		//if parent
-		sendLsp(lsp, id, -1, fileStream);
-		//parent listen on udp for all routers’ info and build LSP table
-		receiveLsps(udpSocket, id, fileStream);
-	//}
-	//else if(pid>0){	
-		//if child
-		//child sends own LSP to all neighbors in the string form:
-		//"my_number, neighbors_1, cost_1,...., neighbors_n, cost_n"
-
-		//exit(0);
-	//}
-	//else{
-	//failed to fork
-		//error("failed to fork, exiting forcefully?");
-	//}
+	//send lsp to neighbors
+	sendLsp(lsp, id, -1, fileStream);
+	//parent listen on udp for all routers’ info and build LSP table
+	receiveLsps(udpSocket, id, fileStream);
 }
 
 //takes the destination
@@ -311,11 +285,13 @@ void router(int id){
 	fileStream<<"Time: "<<currentDateTime()<<" Waiting for neighbor information from the manager...\n";
 	string lspMessage = collectNeighborInfo(tcpSocket, id, fileStream);
 	fileStream<<"Time: "<<currentDateTime()<<" Received neighbor information from the manager\n\n";
-	lspMessage = "lsp," + to_string(id) + "," + lspMessage;
+	lspMessage = "lsp," + to_string(id) + "," + to_string(id) + "," + lspMessage;
 	
 	//Routers do link state algorithm to make the routing tables
+	printf("router %d lsp: %s\n", id, lspMessage.c_str());
 	fileStream<<"Time: "<<currentDateTime()<<" Starting link state algorithm...\n";
 	exchangeLSP(udpSocket, id, lspMessage, fileStream);
+	printf("router %d done exchanging LSp\n", id);
 	ospf(id);
 	
 	//send message to manager saying I'm done!!!
