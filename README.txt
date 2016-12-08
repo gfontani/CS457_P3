@@ -9,8 +9,6 @@ to run the program call $./manager <filename>
 
 The file for this program needs to be set up exactly like the example file in the instructions.  Meaning that the first line in the file is the number of routers in the network and the following lines hold the topology of the network.  A "-1" signifies the end of the topology description.  After the "-1" the file indicates what messages it wants sent around the network by listing the "from" "to" routers.  The end of message passing part of the file is indicated with a "-1". There cannot be any additional white space in the file, otherwise the program will fail.  Note that consecutive numbers on a line are separated by spaces, not tabs. 
 
-NOTE: The program will only work with up to 10 routers.  You cannot have more than 10 routers in the input file
-
 Example of the file format:
 3
 0 1 20

@@ -299,10 +299,10 @@ void router(int id){
 	lspMessage = "lsp," + to_string(id) + "," + to_string(id) + "," + lspMessage;
 	
 	//Routers do link state algorithm to make the routing tables
-	printf("router %d lsp: %s\n", id, lspMessage.c_str());
+	//printf("router %d lsp: %s\n", id, lspMessage.c_str());
 	fileStream<<"Time: "<<currentDateTime()<<" Starting link state algorithm...\n";
 	exchangeLSP(udpSocket, id, lspMessage, fileStream);
-	printf("router %d done exchanging LSp\n", id);
+	//printf("router %d done exchanging LSp\n", id);
 	ospf(id);
 	
 	//send message to manager saying I'm done!!!
