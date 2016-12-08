@@ -3,7 +3,7 @@
 #include <ospf.cpp>
 
 int udpPort;
-
+string filename;
 //client setup
 int client_connect(const char* addr, int portno){
 	struct sockaddr_in serv_addr;
@@ -128,8 +128,8 @@ void receiveLsps(int udpSocket, int id, ofstream& fileStream){
 		fileStream<<"Time: "<<currentDateTime()<<" Received on udp: "<<to_recv.data<<" from : "<<from<<"\n";
 		if(false == receivedLsp[from]){
 			//fork
-			int pid = fork();
-			if(pid==0){
+			//int pid = fork();
+			//if(pid==0){
 				//if parent
 				//store data
 				unsigned int counter = 2;
@@ -143,17 +143,17 @@ void receiveLsps(int udpSocket, int id, ofstream& fileStream){
 					allNeighborWeights[from][neighbor] = weight;
 				}
 				receivedLsp[from] = true;
-			}
-			else if(pid>0){
+			//}
+			//else if(pid>0){
 				//if child
 				//sendLSP to neighbors
 				sendLsp(to_recv.data, id, from, fileStream);
-				exit(0);
-			}
-			else{
+				//exit(0);
+			//}
+			//else{
 			//failed to fork
-				error("failed to fork, exiting forcefully?");
-			}
+				//error("failed to fork, exiting forcefully?");
+			//}
 		}
 		
 	}
@@ -161,25 +161,24 @@ void receiveLsps(int udpSocket, int id, ofstream& fileStream){
 
 void exchangeLSP(int udpSocket, int id, string lsp, ofstream& fileStream){
 	//fork
-	int pid = fork();
-	if(pid==0){
+	//int pid = fork();
+	//if(pid==0){
 		//if parent
+		sendLsp(lsp, id, -1, fileStream);
 		//parent listen on udp for all routers’ info and build LSP table
 		receiveLsps(udpSocket, id, fileStream);
-	}
-	else if(pid>0){	
+	//}
+	//else if(pid>0){	
 		//if child
-		//wait x time (for other routers to be listening on udp)
-		sleep(2);
 		//child sends own LSP to all neighbors in the string form:
 		//"my_number, neighbors_1, cost_1,...., neighbors_n, cost_n"
-		sendLsp(lsp, id, -1, fileStream);
-		exit(0);
-	}
-	else{
+
+		//exit(0);
+	//}
+	//else{
 	//failed to fork
-		error("failed to fork, exiting forcefully?");
-	}
+		//error("failed to fork, exiting forcefully?");
+	//}
 }
 
 //takes the destination
@@ -203,14 +202,16 @@ void collectMessagesToSendInfo(int tcpSocket, int udpSocket, int id, ofstream& f
 		bzero(to_recv->data, DATA_SIZE);
 		recv_udp_msg(udpSocket, to_recv);
 		//printf("Received %s\n", id, to_recv->data);
-		if(0 == strcmp(to_recv->data, "-1")){
+		if((0 == strcmp(to_recv->data, "-1")) || ((to_recv->data != NULL) && (to_recv->data[0] == '\0'))){
 			fileStream<<"Time: "<<currentDateTime()<<" Received on udp: "<<to_recv->data<<"\n";
+		//printf("router %d received %s\n", id, to_recv->data);
 			break;
 		}
 		//receive and parse the message
 		vector<string> messageInfo;
 		boost::split(messageInfo, to_recv->data, boost::is_any_of(","));
 		if(0 != strcmp(messageInfo[0].c_str(), "lsp")){
+		//printf("router %d received %s\n", id, to_recv->data);
 			int from = atoi(messageInfo[0].c_str());
 			int to = atoi(messageInfo[1].c_str());
 			string message = messageInfo[2];
@@ -231,6 +232,7 @@ void collectMessagesToSendInfo(int tcpSocket, int udpSocket, int id, ofstream& f
 				//forward packet and write message
 				int nextHop = getNextHop(to);
 				int nextHopUdp = myNeighborsPorts[nextHop];
+				bzero(to_recv->data, DATA_SIZE);
 				sprintf(to_recv->data, "%d,%d,%s", id, to, message.c_str());
 				send_udp_msg(udpSocket, nextHopUdp, to_recv);
 				fileStream<<"Time: "<<currentDateTime()<<" Forwarding to router "<<nextHop<<"\n"; 
@@ -287,7 +289,7 @@ void router(int id){
 	//create file name based on id
 	//should be id.out
 	string sid = to_string(id);
-	string filename = "router" + sid + ".out";
+	filename = "router" + sid + ".out";
 	//open ofstream to use for debugging and final stuff
 	ofstream fileStream;
 	fileStream.open(filename);

@@ -17,7 +17,7 @@ void error(char const * msg)
 	exit(1);
 }
 
-//copied from: http://stackoverflow.com/questions/997946/how-to-get-current-time-and-date-in-c
+//copied from: http://codereview.stackexchange.com/questions/11921/getting-current-time-with-milliseconds
 // Get current date/time, format is YYYY-MM-DD.HH:mm:ss
 string currentDateTime() {
 	timeval curTime;
